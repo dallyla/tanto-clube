@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 type Status = "loading" | "success" | "error";
 
-export default function MagicLinkPage() {
+function MagicLinkVerifier() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<Status>("loading");
@@ -21,7 +21,6 @@ export default function MagicLinkPage() {
       return;
     }
 
-    // Animate progress bar up to ~80% while waiting
     const tick = setInterval(() => {
       setProgress((p) => (p < 80 ? p + 4 : p));
     }, 120);
@@ -34,7 +33,6 @@ export default function MagicLinkPage() {
         clearInterval(tick);
         setProgress(100);
         setStatus("success");
-        // Small delay so the user sees 100% before navigating
         setTimeout(() => {
           router.replace(res.url && res.url !== window.location.href ? res.url : callbackURL);
         }, 400);
@@ -70,7 +68,6 @@ export default function MagicLinkPage() {
   return (
     <div className="bg-bg-card border border-[color:var(--color-border)] rounded-2xl p-8 shadow-2xl text-center">
       <div className="mb-6">
-        {/* Vinyl record spinner */}
         <div className="relative w-16 h-16 mx-auto">
           <svg
             className="animate-spin w-16 h-16"
@@ -102,7 +99,6 @@ export default function MagicLinkPage() {
         {status === "success" ? "Redirecionando…" : "Aguarde um momento"}
       </p>
 
-      {/* Progress bar */}
       <div className="w-full bg-[color:var(--color-border)] rounded-full h-1.5 overflow-hidden">
         <div
           className="h-full bg-gold rounded-full transition-all duration-200 ease-out"
@@ -110,5 +106,49 @@ export default function MagicLinkPage() {
         />
       </div>
     </div>
+  );
+}
+
+export default function MagicLinkPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="bg-bg-card border border-[color:var(--color-border)] rounded-2xl p-8 shadow-2xl text-center">
+          <div className="relative w-16 h-16 mx-auto mb-6">
+            <svg
+              className="animate-spin w-16 h-16"
+              style={{ animationDuration: "1.4s" }}
+              viewBox="0 0 64 64"
+              fill="none"
+            >
+              <circle cx="32" cy="32" r="30" stroke="#3a2a1a" strokeWidth="4" />
+              <circle
+                cx="32"
+                cy="32"
+                r="30"
+                stroke="#c8a45c"
+                strokeWidth="4"
+                strokeLinecap="round"
+                strokeDasharray="60 130"
+              />
+            </svg>
+            <span className="absolute inset-0 flex items-center justify-center text-xl">
+              🎵
+            </span>
+          </div>
+          <h1 className="font-display text-cream text-xl font-semibold mb-1">
+            Verificando seu link
+          </h1>
+          <p className="text-[color:var(--color-muted-foreground)] text-sm mb-6">
+            Aguarde um momento
+          </p>
+          <div className="w-full bg-[color:var(--color-border)] rounded-full h-1.5 overflow-hidden">
+            <div className="h-full bg-gold rounded-full" style={{ width: "20%" }} />
+          </div>
+        </div>
+      }
+    >
+      <MagicLinkVerifier />
+    </Suspense>
   );
 }
