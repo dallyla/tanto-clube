@@ -1,26 +1,129 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/* ─── Camarim Pop design tokens ─── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Background scale */
+  --color-bg-primary: #1a1410;
+  --color-bg-elevated: #2a201a;
+  --color-bg-card: #221a14;
+  --color-bg-card-hover: #2e231c;
+
+  /* Gold scale */
+  --color-gold: #c8a45c;
+  --color-gold-bright: #e0bc70;
+  --color-gold-deep: #8b6f3a;
+
+  /* Cherry scale */
+  --color-cherry: #c4314b;
+  --color-cherry-deep: #8b1f33;
+
+  /* Text */
+  --color-cream: #f4ead5;
+  --color-beige: #e8dcc5;
+
+  /* shadcn/ui mapping */
+  --color-background: #1a1410;
+  --color-foreground: #f4ead5;
+  --color-card: #221a14;
+  --color-card-foreground: #f4ead5;
+  --color-popover: #2a201a;
+  --color-popover-foreground: #f4ead5;
+  --color-primary: #c8a45c;
+  --color-primary-foreground: #1a1410;
+  --color-secondary: #2a201a;
+  --color-secondary-foreground: #f4ead5;
+  --color-muted: #2a201a;
+  --color-muted-foreground: rgb(244 234 213 / 0.5);
+  --color-accent: #8b1f33;
+  --color-accent-foreground: #f4ead5;
+  --color-destructive: #c4314b;
+  --color-border: rgb(200 164 92 / 0.15);
+  --color-border-strong: rgb(200 164 92 / 0.3);
+  --color-input: #2a201a;
+  --color-ring: #c8a45c;
+  --radius: 0.75rem;
+
+  /* Fonts */
+  --font-display: 'Fraunces', serif;
+  --font-script: 'Caveat', cursive;
+  --font-sans: 'Manrope', sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ─── Light theme ─── */
+.light {
+  --color-background: #f5ede1;
+  --color-foreground: #1a1410;
+  --color-card: #ede3d5;
+  --color-card-foreground: #1a1410;
+  --color-popover: #e8dcc8;
+  --color-popover-foreground: #1a1410;
+  --color-muted: #e8dcc8;
+  --color-muted-foreground: rgb(26 20 16 / 0.6);
+  --color-border: rgb(200 164 92 / 0.25);
+  --color-border-strong: rgb(200 164 92 / 0.45);
+  --color-input: #e8dcc8;
+}
+
+/* ─── Base ─── */
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    background: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* Grain overlay — textura de filme */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.06;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+    mix-blend-mode: overlay;
+  }
+
+  /* Warm radial glow */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background: radial-gradient(ellipse at top, rgb(200 164 92 / 0.07) 0%, transparent 55%);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ─── Utilities ─── */
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+  .font-script {
+    font-family: var(--font-script);
+  }
+
+  .divider-dashed {
+    border-top: 1px dashed var(--color-border);
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
 }
