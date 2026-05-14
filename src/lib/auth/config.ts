@@ -50,11 +50,7 @@ export const auth = betterAuth({
       sendMagicLink: async ({ email, url }) => {
         // Route verification through our custom loading page instead of the raw API
         const loadingUrl = url.replace("/api/auth/magic-link/verify", "/magic-link");
-        // Em dev: usa onboarding@resend.dev (domínio sandbox do Resend)
-        // Em prod: troque por noreply@tantoclube.com.br após verificar o domínio no Resend
-        const from = process.env.NODE_ENV === "production"
-          ? "TANTO Clube <noreply@tantoclube.com.br>"
-          : "TANTO Clube <onboarding@resend.dev>";
+        const from = process.env.RESEND_FROM_EMAIL ?? "TANTO Clube <onboarding@resend.dev>";
 
         const { error } = await getResend().emails.send({
           from,
