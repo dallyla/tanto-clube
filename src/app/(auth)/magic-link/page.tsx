@@ -1,51 +1,27 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-type Status = "loading" | "success" | "error";
-
 function MagicLinkVerifier() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const [status, setStatus] = useState<Status>("loading");
-  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     const token = searchParams.get("token");
     const callbackURL = searchParams.get("callbackURL") ?? "/ranking";
 
     if (!token) {
-      setStatus("error");
+      setError(true);
       return;
     }
 
-    const tick = setInterval(() => {
-      setProgress((p) => (p < 80 ? p + 4 : p));
-    }, 120);
+    // Redirect natively — garante que o browser processa os cookies Set-Cookie do Better Auth
+    window.location.href = `/api/auth/magic-link/verify?token=${encodeURIComponent(token)}&callbackURL=${encodeURIComponent(callbackURL)}`;
+  }, [searchParams]);
 
-    fetch(
-      `/api/auth/magic-link/verify?token=${encodeURIComponent(token)}&callbackURL=${encodeURIComponent(callbackURL)}`,
-      { credentials: "include" }
-    )
-      .then((res) => {
-        clearInterval(tick);
-        setProgress(100);
-        setStatus("success");
-        setTimeout(() => {
-          router.replace(res.url && res.url !== window.location.href ? res.url : callbackURL);
-        }, 400);
-      })
-      .catch(() => {
-        clearInterval(tick);
-        setStatus("error");
-      });
-
-    return () => clearInterval(tick);
-  }, [router, searchParams]);
-
-  if (status === "error") {
+  if (error) {
     return (
       <div className="bg-bg-card border border-[color:var(--color-border)] rounded-2xl p-8 shadow-2xl text-center">
         <div className="text-5xl mb-5">⚠️</div>
@@ -91,64 +67,36 @@ function MagicLinkVerifier() {
           </span>
         </div>
       </div>
-
       <h1 className="font-display text-cream text-xl font-semibold mb-1">
-        {status === "success" ? "Entrando…" : "Verificando seu link"}
+        Verificando seu link
       </h1>
       <p className="text-[color:var(--color-muted-foreground)] text-sm mb-6">
-        {status === "success" ? "Redirecionando…" : "Aguarde um momento"}
+        Aguarde um momento
       </p>
-
       <div className="w-full bg-[color:var(--color-border)] rounded-full h-1.5 overflow-hidden">
-        <div
-          className="h-full bg-gold rounded-full transition-all duration-200 ease-out"
-          style={{ width: `${progress}%` }}
-        />
+        <div className="h-full bg-gold rounded-full animate-pulse" style={{ width: "60%" }} />
       </div>
     </div>
   );
 }
 
+const Fallback = (
+  <div className="bg-bg-card border border-[color:var(--color-border)] rounded-2xl p-8 shadow-2xl text-center">
+    <div className="relative w-16 h-16 mx-auto mb-6">
+      <svg className="animate-spin w-16 h-16" style={{ animationDuration: "1.4s" }} viewBox="0 0 64 64" fill="none">
+        <circle cx="32" cy="32" r="30" stroke="#3a2a1a" strokeWidth="4" />
+        <circle cx="32" cy="32" r="30" stroke="#c8a45c" strokeWidth="4" strokeLinecap="round" strokeDasharray="60 130" />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center text-xl">🎵</span>
+    </div>
+    <h1 className="font-display text-cream text-xl font-semibold mb-1">Verificando seu link</h1>
+    <p className="text-[color:var(--color-muted-foreground)] text-sm mb-6">Aguarde um momento</p>
+    <div className="w-full bg-[color:var(--color-border)] rounded-full h-1.5 overflow-hidden">
+      <div className="h-full bg-gold rounded-full" style={{ width: "20%" }} />
+    </div>
+  </div>
+);
+
 export default function MagicLinkPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="bg-bg-card border border-[color:var(--color-border)] rounded-2xl p-8 shadow-2xl text-center">
-          <div className="relative w-16 h-16 mx-auto mb-6">
-            <svg
-              className="animate-spin w-16 h-16"
-              style={{ animationDuration: "1.4s" }}
-              viewBox="0 0 64 64"
-              fill="none"
-            >
-              <circle cx="32" cy="32" r="30" stroke="#3a2a1a" strokeWidth="4" />
-              <circle
-                cx="32"
-                cy="32"
-                r="30"
-                stroke="#c8a45c"
-                strokeWidth="4"
-                strokeLinecap="round"
-                strokeDasharray="60 130"
-              />
-            </svg>
-            <span className="absolute inset-0 flex items-center justify-center text-xl">
-              🎵
-            </span>
-          </div>
-          <h1 className="font-display text-cream text-xl font-semibold mb-1">
-            Verificando seu link
-          </h1>
-          <p className="text-[color:var(--color-muted-foreground)] text-sm mb-6">
-            Aguarde um momento
-          </p>
-          <div className="w-full bg-[color:var(--color-border)] rounded-full h-1.5 overflow-hidden">
-            <div className="h-full bg-gold rounded-full" style={{ width: "20%" }} />
-          </div>
-        </div>
-      }
-    >
-      <MagicLinkVerifier />
-    </Suspense>
-  );
+  return <Suspense fallback={Fallback}><MagicLinkVerifier /></Suspense>;
 }
