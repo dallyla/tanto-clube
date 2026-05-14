@@ -1,3 +1,4 @@
+export * from "./auth-tables";
 export * from "./users";
 export * from "./eras";
 export * from "./scrobbles";

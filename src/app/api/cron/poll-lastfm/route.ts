@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { users, scrobbles, pointsTransactions, eras, lastfmPollLog } from "@/db/schema";
-import { and, asc, eq, isNotNull, lte, or, isNull } from "drizzle-orm";
+import { and, asc, eq, isNotNull, lte, or, isNull, sql } from "drizzle-orm";
 import { getRecentTracks } from "@/lib/lastfm/client";
 import { checkCaps } from "@/lib/anti-fraud/validators";
 import { calculateScrobblePoints } from "@/lib/points/calculator";
@@ -144,10 +144,9 @@ async function processUserScrobbles(
           eraId: activeEra?.id ?? null,
         });
 
-        // Increment denormalized total_points
         await db
           .update(users)
-          .set({ totalPoints: db.$count(pointsTransactions, eq(pointsTransactions.userId, userId)) as unknown as number })
+          .set({ totalPoints: sql`total_points + ${pointsEarned}` })
           .where(eq(users.id, userId));
 
         scrobblesNew++;
