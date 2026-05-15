@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTheme } from "next-themes";
 
 function Toggle({
   checked,
@@ -41,16 +42,20 @@ function Toggle({
 export default function SettingsForm({
   initialAnonymousMode,
   initialEmailEnabled,
+  initialPushEnabled,
 }: {
   initialAnonymousMode: boolean;
   initialEmailEnabled: boolean;
+  initialPushEnabled: boolean;
 }) {
+  const { theme, setTheme } = useTheme();
   const [anonymousMode, setAnonymousMode] = useState(initialAnonymousMode);
   const [emailEnabled, setEmailEnabled] = useState(initialEmailEnabled);
+  const [pushEnabled, setPushEnabled] = useState(initialPushEnabled);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
-  async function save(patch: { anonymousMode?: boolean; emailEnabled?: boolean }) {
+  async function save(patch: Record<string, unknown>) {
     setSaving(true);
     setSaved(false);
     try {
@@ -76,6 +81,19 @@ export default function SettingsForm({
     save({ emailEnabled: val });
   }
 
+  function handlePush(val: boolean) {
+    setPushEnabled(val);
+    save({ pushEnabled: val });
+  }
+
+  function handleTheme(val: boolean) {
+    const newTheme = val ? "dark" : "light";
+    setTheme(newTheme);
+    save({ themePreference: newTheme });
+  }
+
+  const isDark = theme === "dark" || theme === "system";
+
   return (
     <div className="bg-bg-card border border-[color:var(--color-border)] rounded-2xl p-6 flex flex-col gap-5">
       <div className="flex items-center justify-between">
@@ -94,6 +112,24 @@ export default function SettingsForm({
       <div className="divider-dashed" />
 
       <Toggle
+        checked={isDark}
+        onChange={handleTheme}
+        label="Tema escuro"
+        description="Paleta Camarim Pop noturna"
+      />
+
+      <div className="divider-dashed" />
+
+      <Toggle
+        checked={pushEnabled}
+        onChange={handlePush}
+        label="Notificações push"
+        description="Alertas de ranking, missões e streak"
+      />
+
+      <div className="divider-dashed" />
+
+      <Toggle
         checked={emailEnabled}
         onChange={handleEmail}
         label="Receber e-mails"
@@ -102,7 +138,13 @@ export default function SettingsForm({
 
       <div className="divider-dashed" />
 
-      <div className="flex flex-col gap-2 pt-1">
+      <div className="flex flex-col gap-3 pt-1">
+        <a
+          href="/regulamento"
+          className="text-[color:var(--color-muted-foreground)] hover:text-cream text-sm transition-colors"
+        >
+          Regulamento →
+        </a>
         <a
           href="mailto:suporte@tantoclube.com.br"
           className="text-[color:var(--color-muted-foreground)] hover:text-cream text-sm transition-colors"

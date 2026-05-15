@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import BottomNav from "./bottom-nav";
 
 export const metadata: Metadata = {
   title: {
@@ -36,15 +37,11 @@ export default function FanLayout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-6">
+      <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-6 pb-24">
         {children}
       </main>
 
-      <footer className="border-t border-[color:var(--color-border)] py-6">
-        <p className="text-center text-[color:var(--color-muted-foreground)] text-xs">
-          TANTO Clube © 2026 · Fã-clube de Diego Martins
-        </p>
-      </footer>
+      <BottomNav />
     </div>
   );
 }

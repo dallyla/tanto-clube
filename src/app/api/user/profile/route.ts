@@ -18,7 +18,7 @@ export async function PATCH(req: NextRequest) {
   const body = await req.json();
   const { displayName, avatarEmoji } = body as { displayName?: unknown; avatarEmoji?: unknown };
 
-  const update: { displayName?: string; avatarEmoji?: string } = {};
+  const update: { displayName?: string; avatarEmoji?: string; avatarUrl?: null } = {};
 
   if (displayName !== undefined) {
     const trimmed = String(displayName).trim();
@@ -33,6 +33,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Emoji inválido" }, { status: 400 });
     }
     update.avatarEmoji = String(avatarEmoji);
+    update.avatarUrl = null; // emoji overrides any uploaded image
   }
 
   if (Object.keys(update).length === 0) {

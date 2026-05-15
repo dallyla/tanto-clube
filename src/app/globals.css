@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /* ─── Camarim Pop design tokens ─── */
-@theme inline {
+@theme {
   /* Background scale */
   --color-bg-primary: #1a1410;
   --color-bg-elevated: #2a201a;
@@ -51,21 +51,68 @@
 
 /* ─── Light theme ─── */
 .light {
-  --color-background: #f5ede1;
-  --color-foreground: #1a1410;
-  --color-card: #ede3d5;
-  --color-card-foreground: #1a1410;
-  --color-popover: #e8dcc8;
-  --color-popover-foreground: #1a1410;
-  --color-muted: #e8dcc8;
-  --color-muted-foreground: rgb(26 20 16 / 0.6);
-  --color-border: rgb(200 164 92 / 0.25);
-  --color-border-strong: rgb(200 164 92 / 0.45);
-  --color-input: #e8dcc8;
+  /* Background scale */
+  --color-bg-primary: #f7f0e0;
+  --color-bg-elevated: #efe5d0;
+  --color-bg-card: #fbf6e8;
+  --color-bg-card-hover: #f4ecda;
+
+  /* Gold scale — darker for readability on warm bg */
+  --color-gold: #a17a2d;
+  --color-gold-bright: #c8a45c;
+  --color-gold-deep: #6b4e1a;
+
+  /* Cherry scale */
+  --color-cherry: #a02438;
+  --color-cherry-deep: #6f1525;
+
+  /* Text — cream becomes dark primary text on light bg */
+  --color-cream: #2a1a10;
+  --color-beige: #8b6f3a;
+
+  /* shadcn/ui mapping */
+  --color-background: #f7f0e0;
+  --color-foreground: #2a1a10;
+  --color-card: #fbf6e8;
+  --color-card-foreground: #2a1a10;
+  --color-popover: #efe5d0;
+  --color-popover-foreground: #2a1a10;
+  --color-primary: #a17a2d;
+  --color-primary-foreground: #fff9eb;
+  --color-secondary: #efe5d0;
+  --color-secondary-foreground: #2a1a10;
+  --color-muted: #efe5d0;
+  --color-muted-foreground: rgba(42, 26, 16, 0.6);
+  --color-accent: #6f1525;
+  --color-accent-foreground: #fff9eb;
+  --color-destructive: #a02438;
+  --color-border: rgba(139, 111, 58, 0.18);
+  --color-border-strong: rgba(139, 111, 58, 0.35);
+  --color-input: #efe5d0;
+  --color-ring: #a17a2d;
+}
+
+/* Cherry containers restore light text so buttons stay readable */
+.light .bg-cherry,
+.light .bg-cherry-deep {
+  --color-cream: #fff9eb;
+}
+
+/* Inactive toggle: warm dark tint instead of white/10 on light bg */
+.light .bg-white\/10 {
+  background-color: rgba(42, 26, 16, 0.1);
 }
 
 /* ─── Base ─── */
 @layer base {
+  :root {
+    --color-bg-nav: rgba(26, 20, 16, 0.95);
+  }
+
+  .light {
+    --color-bg-nav: rgba(247, 240, 224, 0.92);
+  }
+
   * {
     box-sizing: border-box;
   }
@@ -91,6 +138,11 @@
     mix-blend-mode: overlay;
   }
 
+  /* Light mode: multiply blend is subtler on warm backgrounds */
+  .light body::before {
+    mix-blend-mode: multiply;
+  }
+
   /* Warm radial glow */
   body::after {
     content: '';
@@ -99,6 +151,11 @@
     pointer-events: none;
     z-index: 0;
     background: radial-gradient(ellipse at top, rgb(200 164 92 / 0.07) 0%, transparent 55%);
+  }
+
+  /* Light mode: stronger warm glow to match the "Camarim Pop em luz" feel */
+  .light body::after {
+    background: radial-gradient(ellipse at top, rgb(200 164 92 / 0.15) 0%, transparent 60%);
   }
 }
 
