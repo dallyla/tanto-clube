@@ -7,6 +7,7 @@ import { users } from "@/db/schema/users";
 import { eq } from "drizzle-orm";
 import { formatPoints } from "@/lib/utils";
 import SignOutButton from "./sign-out-button";
+import ProfileEditForm from "./profile-edit-form";
 
 export const metadata: Metadata = { title: "Perfil" };
 
@@ -81,6 +82,12 @@ export default async function ProfilePage() {
         Membro desde{" "}
         {user.createdAt.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
       </p>
+
+      {/* Editar perfil */}
+      <ProfileEditForm
+        initialName={user.displayName}
+        initialEmoji={user.avatarEmoji ?? "🎵"}
+      />
 
       {/* Sair */}
       <div className="pt-2">

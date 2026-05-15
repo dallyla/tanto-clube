@@ -68,6 +68,44 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ processed: dueUsers.length, ...summary });
 }
 
+async function updateStreak(userId: string, latestListenDate: Date) {
+  const [user] = await db
+    .select({ currentStreak: users.currentStreak, longestStreak: users.longestStreak, lastListenedAt: users.lastListenedAt })
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+
+  if (!user) return;
+
+  const latestDay = latestListenDate.toISOString().slice(0, 10);
+  const lastDay = user.lastListenedAt ? user.lastListenedAt.toISOString().slice(0, 10) : null;
+
+  if (lastDay === latestDay) {
+    // Same calendar day — just refresh the timestamp
+    await db.update(users).set({ lastListenedAt: latestListenDate }).where(eq(users.id, userId));
+    return;
+  }
+
+  let newStreak: number;
+  if (!lastDay) {
+    newStreak = 1;
+  } else {
+    const diffDays = Math.round(
+      (new Date(latestDay + "T00:00:00Z").getTime() - new Date(lastDay + "T00:00:00Z").getTime()) / 86400000,
+    );
+    newStreak = diffDays === 1 ? user.currentStreak + 1 : 1;
+  }
+
+  await db
+    .update(users)
+    .set({
+      currentStreak: newStreak,
+      longestStreak: Math.max(newStreak, user.longestStreak),
+      lastListenedAt: latestListenDate,
+    })
+    .where(eq(users.id, userId));
+}
+
 async function processUserScrobbles(
   userId: string,
   lastfmUsername: string,
@@ -77,6 +115,7 @@ async function processUserScrobbles(
   const startTime = Date.now();
   let scrobblesFetched = 0;
   let scrobblesNew = 0;
+  let latestListenDate: Date | null = null;
 
   try {
     const fromTimestamp = lastPollAt
@@ -112,6 +151,11 @@ async function processUserScrobbles(
 
       const isCounted = capCheck.allowed;
       const pointsEarned = isCounted ? points.pointsEarned : 0;
+
+      // Track latest listen for streak (any scrobble counts, cap or not)
+      if (!latestListenDate || track.scrobbledAt > latestListenDate) {
+        latestListenDate = track.scrobbledAt;
+      }
 
       // Upsert scrobble (unique constraint handles dedup)
       await db
@@ -153,9 +197,13 @@ async function processUserScrobbles(
       }
     }
 
-    // Update poll timestamps
-    const nextPollHours = activeEra ? 1 : 2; // poll more frequently during active era
-    const nextPollAt = new Date(Date.now() + nextPollHours * 60 * 60 * 1000);
+    // Update streak if any tracks were fetched
+    if (latestListenDate) {
+      await updateStreak(userId, latestListenDate);
+    }
+
+    // Update poll timestamps — 15 min to match cron-job.org schedule
+    const nextPollAt = new Date(Date.now() + 15 * 60 * 1000);
 
     await db
       .update(users)
