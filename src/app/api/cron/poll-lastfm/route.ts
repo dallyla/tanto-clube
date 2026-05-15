@@ -4,7 +4,7 @@ import { users, scrobbles, pointsTransactions, eras, lastfmPollLog } from "@/db/
 import { and, asc, eq, isNotNull, lte, or, isNull, sql } from "drizzle-orm";
 import { getRecentTracks } from "@/lib/lastfm/client";
 import { checkCaps } from "@/lib/anti-fraud/validators";
-import { calculateScrobblePoints } from "@/lib/points/calculator";
+import { calculateScrobblePoints, streakBonusPoints } from "@/lib/points/calculator";
 
 // Validates the secret header set in cron-job.org
 function validateCronSecret(req: NextRequest): boolean {
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
   // Find users due for polling: onboarded + lastfm connected + nextPollAt in the past
   const dueUsers = await db
-    .select({ id: users.id, lastfmUsername: users.lastfmUsername, lastPollAt: users.lastPollAt })
+    .select({ id: users.id, lastfmUsername: users.lastfmUsername, lastPollAt: users.lastPollAt, currentStreak: users.currentStreak })
     .from(users)
     .where(
       and(
@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
 
   const results = await Promise.allSettled(
     dueUsers.map((user) =>
-      processUserScrobbles(user.id, user.lastfmUsername!, user.lastPollAt, activeEra ?? null),
+      processUserScrobbles(user.id, user.lastfmUsername!, user.lastPollAt, user.currentStreak, activeEra ?? null),
     ),
   );
 
@@ -68,22 +68,25 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({ processed: dueUsers.length, ...summary });
 }
 
-async function updateStreak(userId: string, latestListenDate: Date) {
+async function updateStreak(
+  userId: string,
+  latestListenDate: Date,
+): Promise<{ newStreak: number; incremented: boolean }> {
   const [user] = await db
     .select({ currentStreak: users.currentStreak, longestStreak: users.longestStreak, lastListenedAt: users.lastListenedAt })
     .from(users)
     .where(eq(users.id, userId))
     .limit(1);
 
-  if (!user) return;
+  if (!user) return { newStreak: 0, incremented: false };
 
   const latestDay = latestListenDate.toISOString().slice(0, 10);
   const lastDay = user.lastListenedAt ? user.lastListenedAt.toISOString().slice(0, 10) : null;
 
   if (lastDay === latestDay) {
-    // Same calendar day — just refresh the timestamp
+    // Same calendar day — just refresh the timestamp, no bonus
     await db.update(users).set({ lastListenedAt: latestListenDate }).where(eq(users.id, userId));
-    return;
+    return { newStreak: user.currentStreak, incremented: false };
   }
 
   let newStreak: number;
@@ -104,12 +107,15 @@ async function updateStreak(userId: string, latestListenDate: Date) {
       lastListenedAt: latestListenDate,
     })
     .where(eq(users.id, userId));
+
+  return { newStreak, incremented: true };
 }
 
 async function processUserScrobbles(
   userId: string,
   lastfmUsername: string,
   lastPollAt: Date | null,
+  currentStreak: number,
   activeEra: typeof eras.$inferSelect | null,
 ) {
   const startTime = Date.now();
@@ -146,7 +152,7 @@ async function processUserScrobbles(
       : undefined;
 
     for (const track of allTracks) {
-      const points = calculateScrobblePoints(track, activeEra);
+      const points = calculateScrobblePoints(track, activeEra, currentStreak);
       const capCheck = await checkCaps(userId, track.scrobbledAt, points.isFocusAlbum, eraLimits);
 
       const isCounted = capCheck.allowed;
@@ -197,9 +203,31 @@ async function processUserScrobbles(
       }
     }
 
-    // Update streak if any tracks were fetched
+    // Update streak and award daily/milestone bonus
     if (latestListenDate) {
-      await updateStreak(userId, latestListenDate);
+      const { newStreak, incremented } = await updateStreak(userId, latestListenDate);
+
+      if (incremented && newStreak > 0) {
+        const bonus = streakBonusPoints(newStreak);
+        const isMilestone = [7, 14, 30, 60, 100].includes(newStreak);
+        const description = isMilestone
+          ? `🏆 Marco de streak: ${newStreak} dias consecutivos!`
+          : `🔥 Bônus de streak: dia ${newStreak}`;
+
+        await db.insert(pointsTransactions).values({
+          userId,
+          amount: bonus,
+          type: "streak_bonus",
+          sourceType: "streak",
+          description,
+          eraId: activeEra?.id ?? null,
+        });
+
+        await db
+          .update(users)
+          .set({ totalPoints: sql`total_points + ${bonus}` })
+          .where(eq(users.id, userId));
+      }
     }
 
     // Update poll timestamps — 15 min to match cron-job.org schedule

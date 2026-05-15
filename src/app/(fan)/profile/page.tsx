@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema/users";
 import { eq } from "drizzle-orm";
 import { formatPoints } from "@/lib/utils";
+import { getFanLevel } from "@/lib/fan-level";
 import SignOutButton from "./sign-out-button";
 import ProfileEditForm from "./profile-edit-form";
 import LastfmStatus from "./lastfm-status";
@@ -38,6 +39,8 @@ export default async function ProfilePage() {
 
   if (!user) redirect("/login");
 
+  const { level, progress, pointsToNext } = getFanLevel(user.totalPoints);
+
   return (
     <div className="flex flex-col gap-6">
       {/* Cabeçalho do perfil */}
@@ -58,6 +61,35 @@ export default async function ProfilePage() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Nível do fã */}
+      <div className="bg-bg-card border border-[color:var(--color-border)] rounded-2xl p-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">{level.emoji}</span>
+            <div>
+              <p className="text-cream font-semibold text-sm leading-tight">{level.name}</p>
+              <p className="text-[color:var(--color-muted-foreground)] text-xs">nível do fã</p>
+            </div>
+          </div>
+          {pointsToNext !== null && (
+            <p className="text-[color:var(--color-muted-foreground)] text-xs text-right">
+              {formatPoints(pointsToNext)} pts<br />
+              <span className="text-[10px]">para o próximo</span>
+            </p>
+          )}
+        </div>
+        {/* Progress bar */}
+        <div className="h-2 bg-[color:var(--color-border)] rounded-full overflow-hidden">
+          <div
+            className="h-full bg-gold rounded-full transition-all duration-500"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+        {pointsToNext === null && (
+          <p className="text-gold text-xs text-center mt-2 font-semibold">Nível máximo alcançado! 👑</p>
+        )}
       </div>
 
       {/* Stats */}
