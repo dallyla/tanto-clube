@@ -8,6 +8,8 @@ import { eq } from "drizzle-orm";
 import { formatPoints } from "@/lib/utils";
 import SignOutButton from "./sign-out-button";
 import ProfileEditForm from "./profile-edit-form";
+import LastfmStatus from "./lastfm-status";
+import SettingsForm from "./settings-form";
 
 export const metadata: Metadata = { title: "Perfil" };
 
@@ -24,8 +26,11 @@ export default async function ProfilePage() {
       totalPoints: users.totalPoints,
       currentStreak: users.currentStreak,
       longestStreak: users.longestStreak,
-      isOnboarded: users.isOnboarded,
       createdAt: users.createdAt,
+      lastPollAt: users.lastPollAt,
+      nextPollAt: users.nextPollAt,
+      anonymousMode: users.anonymousMode,
+      emailEnabled: users.emailEnabled,
     })
     .from(users)
     .where(eq(users.id, session.user.id))
@@ -83,10 +88,25 @@ export default async function ProfilePage() {
         {user.createdAt.toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}
       </p>
 
+      {/* Last.fm */}
+      {user.lastfmUsername && (
+        <LastfmStatus
+          lastfmUsername={user.lastfmUsername}
+          lastPollAt={user.lastPollAt}
+          nextPollAt={user.nextPollAt}
+        />
+      )}
+
       {/* Editar perfil */}
       <ProfileEditForm
         initialName={user.displayName}
         initialEmoji={user.avatarEmoji ?? "🎵"}
+      />
+
+      {/* Configurações */}
+      <SettingsForm
+        initialAnonymousMode={user.anonymousMode}
+        initialEmailEnabled={user.emailEnabled}
       />
 
       {/* Sair */}
