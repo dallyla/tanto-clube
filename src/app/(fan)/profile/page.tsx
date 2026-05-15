@@ -44,18 +44,17 @@ export default async function ProfilePage() {
 
   if (!user) redirect("/login");
 
-  const [focusResult] = await db
+  const [totalScrobblesResult] = await db
     .select({ value: count() })
     .from(scrobbles)
     .where(
       and(
         eq(scrobbles.userId, session.user.id),
-        eq(scrobbles.isFocusAlbum, true),
         eq(scrobbles.isCounted, true),
       ),
     );
 
-  const focusAlbumCount = focusResult?.value ?? 0;
+  const totalScrobbles = Number(totalScrobblesResult?.value ?? 0);
 
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
@@ -217,9 +216,9 @@ export default async function ProfilePage() {
           style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
         >
           <p className="font-display text-cream text-2xl font-medium italic tabular-nums leading-tight">
-            {formatPoints(focusAlbumCount)}
+            {totalScrobbles.toLocaleString("pt-BR")}
           </p>
-          <p className="text-[color:var(--color-muted-foreground)] text-xs mt-1">do álbum em foco</p>
+          <p className="text-[color:var(--color-muted-foreground)] text-xs mt-1">escutas contadas</p>
         </div>
 
         {/* Recorde */}
