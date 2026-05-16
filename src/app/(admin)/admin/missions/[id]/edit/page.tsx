@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/admin";
 import { db } from "@/db";
 import { missions } from "@/db/schema/missions";
@@ -27,6 +27,10 @@ export default async function EditMissionPage({
   ]);
 
   if (!mission) notFound();
+  // Encerradas (isActive=false + endsAt in the past) cannot be edited
+  if (!mission.isActive && mission.endsAt && new Date(mission.endsAt) <= new Date()) {
+    redirect("/admin/missions");
+  }
 
   function toLocalDatetime(d: Date | null): string {
     if (!d) return "";

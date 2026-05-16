@@ -92,8 +92,13 @@ export default async function AdminMissionsPage() {
   const programadas = allMissions.filter(
     (m) => m.startsAt && new Date(m.startsAt) > now
   );
+  // Encerradas: were explicitly ended (endsAt set in the past and isActive = false)
+  const encerradas = allMissions.filter(
+    (m) => !m.isActive && m.endsAt && new Date(m.endsAt) <= now
+  );
+  // Rascunhos: inactive missions that were never ended (no past endsAt)
   const rascunhos = allMissions.filter(
-    (m) => !m.isActive && (!m.startsAt || new Date(m.startsAt) <= now)
+    (m) => !m.isActive && (!m.endsAt || new Date(m.endsAt) > now)
   );
 
   const pendingForClient = pending.map((s) => ({
@@ -451,44 +456,18 @@ export default async function AdminMissionsPage() {
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
                         <span style={{ fontSize: "18px", flexShrink: 0 }}>{m.emoji}</span>
-                        <p
-                          style={{
-                            color: "var(--color-cream)",
-                            fontSize: "14px",
-                            fontWeight: 600,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
+                        <p style={{ color: "var(--color-cream)", fontSize: "14px", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {m.title}
                         </p>
                       </div>
-                      <span
-                        className="font-display"
-                        style={{
-                          color: "var(--color-muted-foreground)",
-                          fontSize: "14px",
-                          fontWeight: 700,
-                          fontStyle: "italic",
-                          flexShrink: 0,
-                        }}
-                      >
+                      <span className="font-display" style={{ color: "var(--color-muted-foreground)", fontSize: "14px", fontWeight: 700, fontStyle: "italic", flexShrink: 0 }}>
                         +{m.pointsReward} pts
                       </span>
                     </div>
 
-                    <div
-                      style={{
-                        fontSize: "12px",
-                        color: "var(--color-muted-foreground)",
-                        marginBottom: "12px",
-                      }}
-                    >
+                    <div style={{ fontSize: "12px", color: "var(--color-muted-foreground)", marginBottom: "12px" }}>
                       {m.eraName ? (
-                        <span style={{ color: "var(--color-gold)", fontWeight: 600 }}>
-                          🎭 {m.eraName}
-                        </span>
+                        <span style={{ color: "var(--color-gold)", fontWeight: 600 }}>🎭 {m.eraName}</span>
                       ) : (
                         <span>🌐 sem era</span>
                       )}
@@ -497,16 +476,7 @@ export default async function AdminMissionsPage() {
                     <div style={{ display: "flex", gap: "8px" }}>
                       <Link
                         href={`/admin/missions/${m.id}/edit`}
-                        style={{
-                          display: "inline-block",
-                          padding: "7px 14px",
-                          borderRadius: "7px",
-                          border: "1px solid var(--color-border)",
-                          color: "var(--color-cream)",
-                          fontSize: "12px",
-                          fontWeight: 600,
-                          textDecoration: "none",
-                        }}
+                        style={{ display: "inline-block", padding: "7px 14px", borderRadius: "7px", border: "1px solid var(--color-border)", color: "var(--color-cream)", fontSize: "12px", fontWeight: 600, textDecoration: "none" }}
                       >
                         Editar
                       </Link>
@@ -514,6 +484,65 @@ export default async function AdminMissionsPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </section>
+          )}
+
+          {/* ENCERRADAS */}
+          {encerradas.length > 0 && (
+            <section>
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px" }}>
+                <p className="font-display" style={{ ...SECTION_LABEL, color: "var(--color-muted-foreground)" }}>
+                  Encerradas · {encerradas.length}
+                </p>
+                <div style={{ flex: 1, borderTop: "1px solid var(--color-border)" }} />
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {encerradas.map((m) => {
+                  const s = statsMap.get(m.id);
+                  const approvedCount = s?.approvedCount ?? 0;
+                  const total = s?.total ?? 0;
+                  return (
+                    <div
+                      key={m.id}
+                      style={{
+                        background: "var(--color-bg-card)",
+                        border: "1px solid var(--color-border)",
+                        borderRadius: "12px",
+                        padding: "16px 18px",
+                        opacity: 0.65,
+                      }}
+                    >
+                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px", marginBottom: "8px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "10px", minWidth: 0 }}>
+                          <span style={{ fontSize: "18px", flexShrink: 0 }}>{m.emoji}</span>
+                          <p style={{ color: "var(--color-cream)", fontSize: "14px", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {m.title}
+                          </p>
+                        </div>
+                        <span className="font-display" style={{ color: "var(--color-muted-foreground)", fontSize: "14px", fontWeight: 700, fontStyle: "italic", flexShrink: 0 }}>
+                          +{m.pointsReward} pts
+                        </span>
+                      </div>
+
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "12px", fontSize: "12px", color: "var(--color-muted-foreground)", marginBottom: "12px" }}>
+                        {m.eraName ? (
+                          <span style={{ color: "var(--color-gold)", fontWeight: 600 }}>🎭 {m.eraName}</span>
+                        ) : (
+                          <span>🌐 sem era</span>
+                        )}
+                        <span>👥 {total} participações</span>
+                        {approvedCount > 0 && <span>✓ {approvedCount} aprovadas</span>}
+                        {m.endsAt && <span>🗓 encerrada em {fmtDate(m.endsAt)}</span>}
+                      </div>
+
+                      <div style={{ display: "flex", gap: "8px" }}>
+                        <DeleteMissionButton missionId={m.id} />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </section>
           )}
