@@ -6,7 +6,7 @@ import Link from "next/link";
 const ROUTE_META: Record<string, { title: string; subtitle: string }> = {
   "/": { title: "TANTO", subtitle: "clube" },
   "/ranking": { title: "Ranking", subtitle: "queda livre" },
-  "/era": { title: "Era I", subtitle: "em foco" },
+  "/era": { title: "Era Atual", subtitle: "em foco" },
   "/conquistas": { title: "Conquistas", subtitle: "suas" },
   "/profile": { title: "Perfil", subtitle: "você" },
 };

@@ -4,10 +4,18 @@ import { db } from "@/db";
 import { users } from "@/db/schema/users";
 import { scrobbles } from "@/db/schema/scrobbles";
 import { pointsTransactions } from "@/db/schema/points";
+import { rankingsSnapshots } from "@/db/schema/rankings";
 import { eras } from "@/db/schema/eras";
 import { and, desc, eq, gte, sum } from "drizzle-orm";
-import type { Tab, RankedFan } from "./types";
+import type { Tab, RankedFan, Trend } from "./types";
 import { PAGE_SIZE } from "./types";
+
+const TAB_TO_RANKING_TYPE: Record<Tab, "era" | "monthly" | "all_time" | "album_operation"> = {
+  era: "era",
+  mes: "monthly",
+  geral: "all_time",
+  album: "album_operation",
+};
 
 export async function fetchRankingPage(
   tab: Tab,
@@ -21,7 +29,8 @@ export async function fetchRankingPage(
     anonymousMode: users.anonymousMode,
   };
 
-  let fans: RankedFan[] = [];
+  type FanBase = Omit<RankedFan, "trend">;
+  let fans: FanBase[] = [];
 
   if (tab === "geral") {
     fans = await db
@@ -82,6 +91,32 @@ export async function fetchRankingPage(
     fans = rows.map((r) => ({ ...r, points: r.points ?? 0 }));
   }
 
+  const [snapshot] = await db
+    .select({ data: rankingsSnapshots.data })
+    .from(rankingsSnapshots)
+    .where(eq(rankingsSnapshots.rankingType, TAB_TO_RANKING_TYPE[tab]))
+    .orderBy(desc(rankingsSnapshots.computedAt))
+    .limit(1);
+
+  type SnapshotEntry = { rank: number; userId: string };
+  const prevRankMap = new Map<string, number>();
+  if (snapshot) {
+    for (const entry of snapshot.data as SnapshotEntry[]) {
+      prevRankMap.set(entry.userId, entry.rank);
+    }
+  }
+
   const hasMore = fans.length > PAGE_SIZE;
-  return { fans: fans.slice(0, PAGE_SIZE), hasMore };
+  const result: RankedFan[] = fans.slice(0, PAGE_SIZE).map((fan, idx) => {
+    const currentRank = offset + idx + 1;
+    const prevRank = prevRankMap.get(fan.id);
+    let trend: Trend = "stable";
+    if (prevRank !== undefined) {
+      if (currentRank < prevRank) trend = "up";
+      else if (currentRank > prevRank) trend = "down";
+    }
+    return { ...fan, trend };
+  });
+
+  return { fans: result, hasMore };
 }

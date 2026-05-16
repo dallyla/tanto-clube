@@ -2,12 +2,22 @@
 
 import { useState, useEffect, useRef, useTransition } from "react";
 import { fetchRankingPage } from "./actions";
-import type { RankedFan, Tab } from "./types";
+import type { RankedFan, Tab, Trend } from "./types";
 import { formatPoints } from "@/lib/utils";
 
 // PAGE_SIZE not needed here — offset is tracked via offsetRef
 
 const MEDAL_EMOJI = ["🥇", "🥈", "🥉"];
+
+function TrendIcon({ trend }: { trend: Trend }) {
+  if (trend === "up") {
+    return <span className="text-xs leading-none" style={{ color: "#6abf69" }}>↑</span>;
+  }
+  if (trend === "down") {
+    return <span className="text-xs leading-none" style={{ color: "var(--color-cherry)" }}>↓</span>;
+  }
+  return <span className="text-xs leading-none" style={{ color: "var(--color-muted-foreground)" }}>=</span>;
+}
 
 interface Props {
   initialFans: RankedFan[];
@@ -167,12 +177,15 @@ function FanRow({
           )}
         </div>
 
-        <span
-          className="font-display italic text-sm font-medium flex-shrink-0"
-          style={{ color: isYou ? "var(--color-gold-bright)" : "var(--color-gold)" }}
-        >
-          {formatPoints(fan.points)}
-        </span>
+        <div className="flex flex-col items-end flex-shrink-0 gap-0.5">
+          <span
+            className="font-display italic text-sm font-medium"
+            style={{ color: isYou ? "var(--color-gold-bright)" : "var(--color-gold)" }}
+          >
+            {formatPoints(fan.points)}
+          </span>
+          <TrendIcon trend={fan.trend} />
+        </div>
       </div>
     </>
   );

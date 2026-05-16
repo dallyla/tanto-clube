@@ -13,7 +13,8 @@
     "db:studio": "dotenv -e .env.local -- drizzle-kit studio",
     "db:push": "dotenv -e .env.local -- drizzle-kit push",
     "vapid:generate": "npx web-push generate-vapid-keys",
-    "db:seed": "dotenv -e .env.local -- node_modules/.bin/tsx src/scripts/seed-era1.ts"
+    "db:seed": "dotenv -e .env.local -- node_modules/.bin/tsx src/scripts/seed-era1.ts",
+    "db:seed-badges": "dotenv -e .env.local -- node_modules/.bin/tsx src/scripts/seed-badges.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
