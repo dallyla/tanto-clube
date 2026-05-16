@@ -8,3 +8,4 @@ export * from "./badges";
 export * from "./rankings";
 export * from "./prizes";
 export * from "./audit";
+export * from "./events";
