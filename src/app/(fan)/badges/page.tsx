@@ -10,9 +10,11 @@ import { scrobbles } from "@/db/schema/scrobbles";
 import { eq, and, count, countDistinct } from "drizzle-orm";
 import { getFanLevel } from "@/lib/fan-level";
 import { formatPoints } from "@/lib/utils";
+import { checkAndAwardBadges } from "@/lib/badges/check-and-award";
+import { BadgeGrid } from "./badge-grid";
 
 export const metadata: Metadata = { title: "Prêmios & Badges" };
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 type CriteriaConfig = {
   type: "total_scrobbles" | "artist_scrobbles" | "streak_days" | "unique_tracks";
@@ -104,6 +106,8 @@ function BadgeProgress({
 export default async function BadgesPage() {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect("/login");
+
+  await checkAndAwardBadges(session.user.id);
 
   const [user] = await db
     .select({
@@ -253,7 +257,7 @@ export default async function BadgesPage() {
             : "suas badges"}
         </SectionHeading>
 
-        {earnedBadges.length === 0 ? (
+        {earnedBadges.length === 0 && lockedBadges.length === 0 ? (
           <div
             className="rounded-xl p-6 text-center"
             style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
@@ -264,72 +268,22 @@ export default async function BadgesPage() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-2.5">
-            {earnedBadges.map((badge) => (
-              <div
-                key={badge.id}
-                className="aspect-square flex flex-col items-center justify-center gap-1 p-2 rounded-2xl relative"
-                style={{
-                  background: "linear-gradient(135deg, rgb(200 164 92 / 0.08), var(--color-bg-card))",
-                  border: "1px solid var(--color-gold-deep)",
-                }}
-              >
-                <span className="text-3xl leading-none">{badge.emoji}</span>
-                <span
-                  className="text-[11px] font-medium text-center leading-tight"
-                  style={{ color: "var(--color-cream)" }}
-                >
-                  {badge.name}
-                </span>
-              </div>
-            ))}
-
-            {/* Locked badges in same grid */}
-            {lockedBadges.slice(0, Math.max(0, 9 - earnedBadges.length)).map((badge) => (
-              <div
-                key={badge.id}
-                className="aspect-square flex flex-col items-center justify-center gap-1 p-2 rounded-2xl opacity-40"
-                style={{
-                  background: "var(--color-bg-card)",
-                  border: "1px solid var(--color-border)",
-                }}
-              >
-                <span className="text-3xl leading-none" style={{ filter: "grayscale(1)" }}>
-                  {badge.emoji}
-                </span>
-                <span
-                  className="text-[11px] font-medium text-center leading-tight"
-                  style={{ color: "var(--color-muted-foreground)" }}
-                >
-                  {badge.name}
-                </span>
-              </div>
-            ))}
-
-            {/* Show remaining count if lots of locked badges */}
-            {lockedBadges.length > Math.max(0, 9 - earnedBadges.length) && (
-              <div
-                className="aspect-square flex flex-col items-center justify-center gap-1 p-2 rounded-2xl opacity-40"
-                style={{
-                  background: "var(--color-bg-card)",
-                  border: "1px solid var(--color-border)",
-                }}
-              >
-                <span
-                  className="font-display italic text-xl"
-                  style={{ color: "var(--color-muted-foreground)" }}
-                >
-                  +{lockedBadges.length - Math.max(0, 9 - earnedBadges.length)}
-                </span>
-                <span
-                  className="text-[11px] font-medium text-center leading-tight"
-                  style={{ color: "var(--color-muted-foreground)" }}
-                >
-                  a conquistar
-                </span>
-              </div>
-            )}
-          </div>
+          <BadgeGrid
+            earnedBadges={earnedBadges.map((b) => ({
+              id: b.id,
+              name: b.name,
+              description: b.description,
+              emoji: b.emoji,
+              earned: true,
+            }))}
+            lockedBadges={lockedBadges.map((b) => ({
+              id: b.id,
+              name: b.name,
+              description: b.description,
+              emoji: b.emoji,
+              earned: false,
+            }))}
+          />
         )}
       </div>
 
@@ -417,7 +371,8 @@ export default async function BadgesPage() {
                       <div
                         className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
                         style={{
-                          background: "linear-gradient(135deg, var(--color-cherry-deep), var(--color-cherry))",
+                          background: "var(--color-bg-elevated)",
+                          border: "1px solid var(--color-border)",
                         }}
                       >
                         {badge.emoji}
@@ -453,11 +408,11 @@ export default async function BadgesPage() {
                   style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
                 >
                   <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 opacity-40"
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
                     style={{
-                      background: "var(--color-bg-card)",
+                      background: "var(--color-bg-elevated)",
                       border: "1px solid var(--color-border)",
-                      filter: "grayscale(1)",
+                      filter: "grayscale(1) opacity(0.5)",
                     }}
                   >
                     {badge.emoji}

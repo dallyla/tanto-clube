@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { users, scrobbles, pointsTransactions, eras, lastfmPollLog } from "@/db/schema";
 import { and, asc, eq, isNotNull, lte, or, isNull, sql } from "drizzle-orm";
+import { checkAndAwardBadges } from "@/lib/badges/check-and-award";
 import { getRecentTracks } from "@/lib/lastfm/client";
 import { checkCaps } from "@/lib/anti-fraud/validators";
 import { calculateScrobblePoints, streakBonusPoints } from "@/lib/points/calculator";
@@ -229,6 +230,9 @@ async function processUserScrobbles(
           .where(eq(users.id, userId));
       }
     }
+
+    // Award automatic badges based on updated stats
+    await checkAndAwardBadges(userId);
 
     // Update poll timestamps — 15 min to match cron-job.org schedule
     const nextPollAt = new Date(Date.now() + 15 * 60 * 1000);
