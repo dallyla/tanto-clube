@@ -1,0 +1,2486 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TANTO Clube — Admin Panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..900,0..100&family=Caveat:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* TEMA ESCURO (padrão) */
+  --bg-primary: #1a1410;
+  --bg-elevated: #221a14;
+  --bg-card: #2a201a;
+  --bg-hover: #332720;
+  --bg-sidebar: #150f0c;
+  --border: rgba(200, 164, 92, 0.15);
+  --border-strong: rgba(200, 164, 92, 0.3);
+  --gold: #c8a45c;
+  --gold-bright: #e0bc70;
+  --gold-deep: #8b6f3a;
+  --cherry: #c4314b;
+  --cherry-deep: #8b1f33;
+  --cream: #f4ead5;
+  --beige: #e8dcc5;
+  --text-primary: #f4ead5;
+  --text-secondary: rgba(244, 234, 213, 0.7);
+  --text-muted: rgba(244, 234, 213, 0.45);
+  --success: #7eb888;
+  --warning: #d4a574;
+  --danger: #c4314b;
+  --grain-blend: overlay;
+  --grain-opacity: 0.06;
+  --shadow-card: 0 4px 16px rgba(0,0,0,0.4);
+  --font-display: 'Fraunces', serif;
+  --font-script: 'Caveat', cursive;
+  --font-body: 'Manrope', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+[data-theme="light"] {
+  --bg-primary: #f7f0e0;
+  --bg-elevated: #fbf6e8;
+  --bg-card: #fff9eb;
+  --bg-hover: #f4ecda;
+  --bg-sidebar: #ede1c8;
+  --border: rgba(139, 111, 58, 0.18);
+  --border-strong: rgba(139, 111, 58, 0.35);
+  --gold: #a17a2d;
+  --gold-bright: #c8a45c;
+  --gold-deep: #6b4e1a;
+  --cherry: #a02438;
+  --cherry-deep: #6f1525;
+  --cream: #fff9eb;
+  --text-primary: #2a1a10;
+  --text-secondary: rgba(42, 26, 16, 0.7);
+  --text-muted: rgba(42, 26, 16, 0.45);
+  --success: #2d6b3f;
+  --warning: #a76c1f;
+  --danger: #a02438;
+  --grain-blend: multiply;
+  --grain-opacity: 0.05;
+  --shadow-card: 0 4px 16px rgba(106, 60, 20, 0.08);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  font-size: 14px;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+  transition: background 0.3s, color 0.3s;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1000;
+  opacity: var(--grain-opacity);
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200' viewBox='0 0 200 200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  mix-blend-mode: var(--grain-blend);
+}
+
+/* THEME TOGGLE */
+.theme-toggle {
+  position: fixed;
+  top: 20px;
+  right: 24px;
+  z-index: 100;
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 6px;
+  display: flex;
+  gap: 4px;
+  box-shadow: var(--shadow-card);
+}
+
+.theme-toggle button {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.theme-toggle button.active {
+  background: linear-gradient(135deg, var(--cherry-deep), var(--cherry));
+  color: var(--cream);
+}
+
+/* LAYOUT */
+.admin-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+}
+
+/* SIDEBAR */
+.sidebar {
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  padding: 24px 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.sidebar-brand {
+  padding: 0 20px 20px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+
+.sidebar-brand .mark {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  font-style: italic;
+  color: var(--gold);
+  letter-spacing: -0.02em;
+  display: block;
+}
+
+.sidebar-brand .sub {
+  font-family: var(--font-script);
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  margin-top: -2px;
+  display: block;
+}
+
+.sidebar-brand .role-tag {
+  display: inline-block;
+  margin-top: 8px;
+  background: rgba(196, 49, 75, 0.15);
+  border: 1px solid rgba(196, 49, 75, 0.35);
+  color: var(--cherry);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+[data-theme="light"] .sidebar-brand .role-tag {
+  background: rgba(160, 36, 56, 0.1);
+}
+
+.sidebar-section-label {
+  font-family: var(--font-display);
+  font-size: 0.68rem;
+  font-style: italic;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--gold-deep);
+  padding: 12px 20px 6px;
+  font-weight: 500;
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: all 0.15s;
+}
+
+.sidebar-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.sidebar-item.active {
+  background: var(--bg-hover);
+  color: var(--gold);
+  border-left-color: var(--gold);
+}
+
+.sidebar-item .icon {
+  font-size: 1rem;
+  width: 18px;
+  text-align: center;
+}
+
+.sidebar-item .badge-count {
+  margin-left: auto;
+  background: var(--cherry);
+  color: var(--cream);
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 999px;
+  min-width: 18px;
+  text-align: center;
+}
+
+/* MAIN CONTENT */
+.main {
+  padding: 0;
+}
+
+.main-header {
+  padding: 20px 32px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-primary);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.page-title {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 500;
+  font-style: italic;
+  letter-spacing: -0.01em;
+}
+
+.page-title .num {
+  color: var(--gold);
+  font-weight: 300;
+  font-style: normal;
+  margin-right: 6px;
+}
+
+.main-header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.search-input {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  width: 240px;
+}
+
+.search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.user-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+}
+
+.user-pill .avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--cherry-deep), var(--cherry));
+  color: var(--cream);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+/* MAIN BODY */
+.page {
+  padding: 28px 32px;
+  display: none;
+}
+
+.page.active {
+  display: block;
+}
+
+/* COMPONENTS */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--gold);
+  color: var(--bg-primary);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn:hover { background: var(--gold-bright); }
+
+.btn.secondary {
+  background: transparent;
+  border: 1px solid var(--gold);
+  color: var(--gold);
+}
+
+.btn.secondary:hover { background: rgba(200, 164, 92, 0.1); }
+
+.btn.danger {
+  background: transparent;
+  border: 1px solid var(--danger);
+  color: var(--danger);
+}
+
+.btn.danger:hover { background: rgba(196, 49, 75, 0.1); }
+
+.btn.small {
+  padding: 5px 10px;
+  font-size: 0.75rem;
+}
+
+/* CARDS */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: var(--shadow-card);
+}
+
+.card-title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-style: italic;
+  font-weight: 500;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.section-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 16px;
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-style: italic;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 600;
+}
+
+.section-heading::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* STATS GRID */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.stat-card .label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.stat-card .value {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 500;
+  font-style: italic;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.stat-card .delta {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 0.78rem;
+  color: var(--success);
+  font-weight: 500;
+}
+
+.stat-card .delta.down { color: var(--danger); }
+
+.stat-card .meta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+/* TABLES */
+.table-wrap {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead th {
+  text-align: left;
+  padding: 12px 16px;
+  background: var(--bg-elevated);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--gold);
+  border-bottom: 1px solid var(--border);
+}
+
+tbody td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.86rem;
+  vertical-align: middle;
+}
+
+tbody tr:last-child td { border-bottom: none; }
+
+tbody tr:hover { background: var(--bg-hover); }
+
+.table-cell-bold {
+  font-weight: 600;
+}
+
+.cell-meta {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  display: block;
+  margin-top: 2px;
+}
+
+.mono { font-family: var(--font-mono); font-size: 0.82rem; }
+
+/* STATUS PILLS */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.status.active { background: rgba(126, 184, 136, 0.15); color: var(--success); }
+.status.scheduled { background: rgba(212, 165, 116, 0.15); color: var(--warning); }
+.status.draft { background: rgba(244, 234, 213, 0.08); color: var(--text-secondary); }
+.status.ended { background: rgba(244, 234, 213, 0.06); color: var(--text-muted); }
+.status.pending { background: rgba(212, 165, 116, 0.15); color: var(--warning); }
+.status.suspicious { background: rgba(196, 49, 75, 0.15); color: var(--danger); }
+.status.delivered { background: rgba(126, 184, 136, 0.15); color: var(--success); }
+.status.sent { background: rgba(200, 164, 92, 0.15); color: var(--gold); }
+
+[data-theme="light"] .status.active { background: rgba(45, 107, 63, 0.12); }
+[data-theme="light"] .status.scheduled { background: rgba(167, 108, 31, 0.12); }
+[data-theme="light"] .status.draft { background: rgba(42, 26, 16, 0.06); }
+[data-theme="light"] .status.ended { background: rgba(42, 26, 16, 0.05); }
+[data-theme="light"] .status.pending { background: rgba(167, 108, 31, 0.12); }
+[data-theme="light"] .status.suspicious { background: rgba(160, 36, 56, 0.1); }
+[data-theme="light"] .status.delivered { background: rgba(45, 107, 63, 0.12); }
+[data-theme="light"] .status.sent { background: rgba(161, 122, 45, 0.12); }
+
+/* AVATAR */
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+/* ERA CARDS */
+.era-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 12px;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 18px;
+  align-items: center;
+}
+
+.era-card.active {
+  border-color: var(--success);
+  background: linear-gradient(90deg, rgba(126, 184, 136, 0.06), var(--bg-card));
+}
+
+[data-theme="light"] .era-card.active {
+  background: linear-gradient(90deg, rgba(45, 107, 63, 0.06), var(--bg-card));
+}
+
+.era-emoji {
+  font-size: 2.2rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: var(--bg-elevated);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+}
+
+.era-card.active .era-emoji {
+  background: rgba(126, 184, 136, 0.1);
+  border-color: rgba(126, 184, 136, 0.3);
+}
+
+[data-theme="light"] .era-card.active .era-emoji {
+  background: rgba(45, 107, 63, 0.08);
+  border-color: rgba(45, 107, 63, 0.25);
+}
+
+.era-info .name {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-style: italic;
+  font-weight: 600;
+}
+
+.era-info .meta {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.era-info .tagline {
+  font-family: var(--font-script);
+  color: var(--gold);
+  font-size: 1rem;
+  margin-top: 2px;
+}
+
+.era-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* ALERTS */
+.alert {
+  background: rgba(196, 49, 75, 0.08);
+  border: 1px solid rgba(196, 49, 75, 0.3);
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+[data-theme="light"] .alert {
+  background: rgba(160, 36, 56, 0.06);
+}
+
+.alert .icon {
+  font-size: 1.2rem;
+}
+
+.alert .text {
+  flex: 1;
+  font-size: 0.85rem;
+}
+
+.alert .text strong {
+  font-weight: 600;
+}
+
+/* TWO COLUMN LAYOUT */
+.two-col {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 18px;
+}
+
+.three-col {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+/* MISSION CARDS */
+.mission-card-admin {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 16px 18px;
+  margin-bottom: 10px;
+}
+
+.mission-card-admin.review-pending {
+  border-color: rgba(212, 165, 116, 0.4);
+}
+
+.mission-card-admin .top-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.mission-card-admin .title {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.mission-card-admin .reward {
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--gold);
+  font-weight: 600;
+  white-space: nowrap;
+  font-size: 0.95rem;
+}
+
+.mission-card-admin .stats {
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  margin-top: 6px;
+  display: flex;
+  gap: 16px;
+}
+
+.mission-card-admin .stats span strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.mission-card-admin .actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 6px;
+}
+
+/* VALIDATION PANEL (in missions page) */
+.validation-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.validation-progress {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.validation-progress .label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.validation-progress .label strong {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.validation-fan {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.validation-fan .name {
+  font-weight: 600;
+}
+
+.validation-fan .when {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.validation-image-placeholder {
+  background: var(--bg-elevated);
+  border: 1px dashed var(--border-strong);
+  border-radius: 10px;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-family: var(--font-script);
+  margin-bottom: 14px;
+}
+
+.validation-comment {
+  background: var(--bg-elevated);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 14px;
+  font-style: italic;
+}
+
+.validation-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+
+.validation-actions .btn {
+  justify-content: center;
+}
+
+/* BADGE PREVIEW (admin badges page) */
+.badge-grid-admin {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.badge-admin-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.badge-admin-card .top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.badge-admin-card .badge-emoji-big {
+  font-size: 1.8rem;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--bg-elevated);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+}
+
+.badge-admin-card .name {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.badge-admin-card .category {
+  font-size: 0.7rem;
+  color: var(--gold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 500;
+}
+
+.badge-admin-card .desc {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  min-height: 32px;
+}
+
+.badge-admin-card .meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.74rem;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+
+.badge-admin-card .meta .count {
+  color: var(--text-secondary);
+}
+
+.badge-admin-card .meta .count strong {
+  color: var(--cream);
+  font-weight: 700;
+}
+
+[data-theme="light"] .badge-admin-card .meta .count strong {
+  color: var(--text-primary);
+}
+
+/* TIMELINE */
+.timeline {
+  position: relative;
+  padding-left: 22px;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 6px;
+  bottom: 6px;
+  width: 1px;
+  background: var(--border-strong);
+}
+
+.timeline-item {
+  position: relative;
+  padding-bottom: 16px;
+}
+
+.timeline-item::before {
+  content: '';
+  position: absolute;
+  left: -22px;
+  top: 4px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--bg-primary);
+  border: 2px solid var(--gold);
+}
+
+.timeline-item.done::before { background: var(--gold); }
+.timeline-item.pending::before { background: var(--bg-primary); border-color: var(--warning); }
+
+.timeline-item .when {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.timeline-item .what {
+  font-size: 0.85rem;
+  margin-top: 2px;
+}
+
+.timeline-item .what strong { font-weight: 600; }
+
+/* SHIPMENT CARD */
+.shipment-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 16px;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 10px;
+}
+
+.shipment-card.pending {
+  border-color: rgba(212, 165, 116, 0.4);
+}
+
+.shipment-card .icon-big {
+  font-size: 1.8rem;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--bg-elevated);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shipment-card .info .winner {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.shipment-card .info .what {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.shipment-card .info .timing {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+  font-family: var(--font-mono);
+}
+
+.shipment-card .actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+/* CHART AREA */
+.chart-placeholder {
+  height: 180px;
+  background: var(--bg-elevated);
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  display: flex;
+  align-items: flex-end;
+  padding: 16px;
+  gap: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+.chart-bar {
+  flex: 1;
+  background: linear-gradient(180deg, var(--gold), var(--gold-deep));
+  border-radius: 4px 4px 0 0;
+  position: relative;
+  opacity: 0.85;
+  min-height: 8px;
+}
+
+.chart-bar.tall { height: 80%; }
+.chart-bar.med { height: 60%; }
+.chart-bar.short { height: 35%; }
+.chart-bar.shorter { height: 20%; }
+.chart-bar.tallest { height: 95%; background: linear-gradient(180deg, var(--cherry), var(--cherry-deep)); }
+
+/* FORM ELEMENTS */
+.form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.form-row label {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.form-input, .form-select {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 0.86rem;
+}
+
+/* CHECKBOX ROW */
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-elevated);
+  border-radius: 8px;
+  margin-bottom: 6px;
+}
+
+.check-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--gold);
+}
+
+.check-row .multiplier {
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--cherry);
+  font-weight: 700;
+  margin-left: auto;
+}
+
+/* FAN CARD */
+.fan-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 14px;
+  align-items: center;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 18px;
+  margin-bottom: 8px;
+}
+
+.fan-card.suspicious {
+  border-color: rgba(196, 49, 75, 0.4);
+}
+
+.fan-card .avatar-big {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+}
+
+.fan-card .info .username {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.fan-card .info .details {
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.fan-card .info .details .sep {
+  margin: 0 6px;
+  color: var(--gold-deep);
+}
+
+/* REPORTS */
+.report-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px dashed var(--border);
+  font-size: 0.88rem;
+}
+
+.report-row:last-child { border-bottom: none; }
+
+.report-row .metric strong {
+  font-weight: 700;
+}
+
+.report-row .val {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 1.05rem;
+}
+
+.report-row .val .delta {
+  font-size: 0.74rem;
+  color: var(--success);
+  margin-left: 6px;
+  font-family: var(--font-body);
+  font-style: normal;
+  font-weight: 600;
+}
+
+/* SETTINGS GRID */
+.settings-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px;
+  margin-bottom: 16px;
+}
+
+.settings-section h3 {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-style: italic;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+/* PAGE INDICATOR */
+.page-indicator {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.78rem;
+  color: var(--gold);
+  z-index: 50;
+  box-shadow: var(--shadow-card);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1100px) {
+  .admin-layout {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    position: static;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .badge-grid-admin { grid-template-columns: repeat(2, 1fr); }
+  .two-col, .three-col { grid-template-columns: 1fr; }
+}
+
+</style>
+</head>
+<body data-theme="dark">
+
+<!-- THEME TOGGLE -->
+<div class="theme-toggle">
+  <button class="active" onclick="setTheme('dark')">escuro</button>
+  <button onclick="setTheme('light')">claro</button>
+</div>
+
+<div class="admin-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <span class="mark">TANTO</span>
+      <span class="sub">clube · admin</span>
+      <span class="role-tag">administrador</span>
+    </div>
+
+    <div class="sidebar-section-label">visão</div>
+    <div class="sidebar-item active" onclick="showPage('dashboard')">
+      <span class="icon">📊</span>
+      <span>Dashboard</span>
+    </div>
+
+    <div class="sidebar-section-label">gestão</div>
+    <div class="sidebar-item" onclick="showPage('eras')">
+      <span class="icon">🎯</span>
+      <span>Eras & Desafios</span>
+    </div>
+    <div class="sidebar-item" onclick="showPage('missions')">
+      <span class="icon">🎁</span>
+      <span>Missões</span>
+      <span class="badge-count">14</span>
+    </div>
+    <div class="sidebar-item" onclick="showPage('badges')">
+      <span class="icon">🏅</span>
+      <span>Badges</span>
+    </div>
+
+    <div class="sidebar-section-label">comunidade</div>
+    <div class="sidebar-item" onclick="showPage('fans')">
+      <span class="icon">👥</span>
+      <span>Fãs</span>
+      <span class="badge-count">2</span>
+    </div>
+    <div class="sidebar-item" onclick="showPage('apuration')">
+      <span class="icon">🏆</span>
+      <span>Apuração</span>
+    </div>
+    <div class="sidebar-item" onclick="showPage('shipments')">
+      <span class="icon">📦</span>
+      <span>Envio</span>
+      <span class="badge-count">5</span>
+    </div>
+
+    <div class="sidebar-section-label">análise</div>
+    <div class="sidebar-item" onclick="showPage('reports')">
+      <span class="icon">📈</span>
+      <span>Relatórios</span>
+    </div>
+    <div class="sidebar-item" onclick="showPage('settings')">
+      <span class="icon">⚙️</span>
+      <span>Configurações</span>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- ===== PAGE 1: DASHBOARD ===== -->
+    <div class="page active" id="dashboard">
+      <div class="main-header">
+        <h1 class="page-title"><span class="num">01.</span>Dashboard</h1>
+        <div class="main-header-actions">
+          <span style="font-size: 0.78rem; color: var(--text-secondary);">terça, 13 de maio · 21:34</span>
+          <div class="user-pill">
+            <div class="avatar">D</div>
+            <span>dallyla</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="page" style="padding: 28px 32px; display: block;">
+
+        <!-- Era em destaque -->
+        <div class="era-card active" style="margin-bottom: 24px;">
+          <div class="era-emoji">🪂</div>
+          <div class="era-info">
+            <div style="font-family: var(--font-display); font-size: 0.72rem; font-style: italic; letter-spacing: 0.15em; text-transform: uppercase; color: var(--gold); margin-bottom: 2px;">Era em andamento · 247 participantes</div>
+            <div class="name">Era I: Queda Livre</div>
+            <div class="tagline">o salto começa agora</div>
+            <div class="meta">13 a 19 de maio · termina em 5d 14h</div>
+          </div>
+          <div class="era-actions">
+            <button class="btn small secondary">Ver detalhes</button>
+            <button class="btn small">Editar</button>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <h2 class="section-heading">métricas em tempo real</h2>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="label">fãs cadastrados</div>
+            <div class="value">247</div>
+            <span class="delta">+18 nas últimas 24h</span>
+          </div>
+          <div class="stat-card">
+            <div class="label">scrobbles do mês</div>
+            <div class="value">142.380</div>
+            <span class="delta">+12% vs semana anterior</span>
+          </div>
+          <div class="stat-card">
+            <div class="label">DAU (24h)</div>
+            <div class="value">89</div>
+            <div class="meta">retenção 7d: 64%</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">missões pendentes</div>
+            <div class="value" style="color: var(--warning);">14</div>
+            <div class="meta">aguardando validação</div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <!-- Gráfico de atividade -->
+          <div class="card">
+            <h3 class="card-title">🎧 Scrobbles por dia · maio</h3>
+            <div class="chart-placeholder">
+              <div class="chart-bar shorter"></div>
+              <div class="chart-bar short"></div>
+              <div class="chart-bar shorter"></div>
+              <div class="chart-bar shorter"></div>
+              <div class="chart-bar short"></div>
+              <div class="chart-bar short"></div>
+              <div class="chart-bar tallest"></div>
+              <div class="chart-bar tall"></div>
+              <div class="chart-bar med"></div>
+              <div class="chart-bar tall"></div>
+              <div class="chart-bar med"></div>
+              <div class="chart-bar tall"></div>
+              <div class="chart-bar tall"></div>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);">
+              <span>1 mai</span>
+              <span style="color: var(--cherry);">7 mai · lançamento</span>
+              <span>13 mai</span>
+            </div>
+          </div>
+
+          <!-- Alertas -->
+          <div>
+            <h3 class="section-heading">alertas</h3>
+            <div class="alert">
+              <span class="icon">⚠️</span>
+              <div class="text">
+                <strong>2 fãs com padrão suspeito</strong>
+                <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 2px;">Picos de scrobble irregulares</div>
+              </div>
+              <button class="btn small secondary">Revisar</button>
+            </div>
+            <div class="alert" style="background: rgba(212, 165, 116, 0.08); border-color: rgba(212, 165, 116, 0.3);">
+              <span class="icon">⏳</span>
+              <div class="text">
+                <strong>14 prints aguardando validação</strong>
+                <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 2px;">Mais antigos: 2h atrás</div>
+              </div>
+              <button class="btn small">Validar</button>
+            </div>
+            <div class="alert" style="background: rgba(126, 184, 136, 0.08); border-color: rgba(126, 184, 136, 0.3);">
+              <span class="icon">✓</span>
+              <div class="text">
+                <strong>Era II "You and I" pronta</strong>
+                <div style="font-size: 0.76rem; color: var(--text-muted); margin-top: 2px;">Inicia em 7 dias</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ações rápidas -->
+        <h3 class="section-heading" style="margin-top: 24px;">ações rápidas</h3>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button class="btn">+ Criar missão pontual</button>
+          <button class="btn secondary">+ Adicionar badge</button>
+          <button class="btn secondary">📢 Anunciar aos fãs</button>
+          <button class="btn secondary">📊 Exportar relatório</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PAGE 2: ERAS ===== -->
+    <div class="page" id="eras">
+      <div class="main-header">
+        <h1 class="page-title"><span class="num">02.</span>Eras & Desafios</h1>
+        <div class="main-header-actions">
+          <button class="btn">+ Nova Era</button>
+          <div class="user-pill">
+            <div class="avatar">D</div>
+            <span>dallyla</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="page" style="padding: 28px 32px; display: block;">
+
+        <h2 class="section-heading">em andamento</h2>
+        <div class="era-card active">
+          <div class="era-emoji">🪂</div>
+          <div class="era-info">
+            <div class="name">Era I: Queda Livre <span class="status active" style="margin-left: 8px; vertical-align: middle;">ativa</span></div>
+            <div class="tagline">o salto começa agora</div>
+            <div class="meta">13 a 19 de maio · 247 participantes · termina em 5d 14h</div>
+          </div>
+          <div class="era-actions">
+            <button class="btn small secondary">Ver detalhes</button>
+            <button class="btn small">Editar</button>
+            <button class="btn small danger">Encerrar</button>
+          </div>
+        </div>
+
+        <h2 class="section-heading" style="margin-top: 24px;">programadas</h2>
+        <div class="era-card">
+          <div class="era-emoji">💫</div>
+          <div class="era-info">
+            <div class="name">Era II: You and I <span class="status scheduled" style="margin-left: 8px; vertical-align: middle;">agendada</span></div>
+            <div class="tagline">você e a sua música</div>
+            <div class="meta">20 a 26 de maio · multiplicadores: ×2 álbum, ×1.5 TANTO</div>
+          </div>
+          <div class="era-actions">
+            <button class="btn small secondary">Editar</button>
+            <button class="btn small secondary">Clonar</button>
+          </div>
+        </div>
+
+        <div class="era-card">
+          <div class="era-emoji">🎤</div>
+          <div class="era-info">
+            <div class="name">Era III: Hot Stuff <span class="status scheduled" style="margin-left: 8px; vertical-align: middle;">agendada</span></div>
+            <div class="tagline">a era mais quente do mês</div>
+            <div class="meta">27 mai a 2 jun · inclui badge especial Blue Note (30/05)</div>
+          </div>
+          <div class="era-actions">
+            <button class="btn small secondary">Editar</button>
+            <button class="btn small secondary">Clonar</button>
+          </div>
+        </div>
+
+        <div class="era-card">
+          <div class="era-emoji">👑</div>
+          <div class="era-info">
+            <div class="name">Era IV: Tanto, Tudo <span class="status scheduled" style="margin-left: 8px; vertical-align: middle;">agendada</span></div>
+            <div class="tagline">a coroação</div>
+            <div class="meta">3 a 9 de junho · reta final · apuração mensal em 10/06</div>
+          </div>
+          <div class="era-actions">
+            <button class="btn small secondary">Editar</button>
+            <button class="btn small secondary">Clonar</button>
+          </div>
+        </div>
+
+        <h2 class="section-heading" style="margin-top: 24px;">rascunhos</h2>
+        <div class="era-card" style="opacity: 0.6;">
+          <div class="era-emoji">🌅</div>
+          <div class="era-info">
+            <div class="name">Era I de Junho: Fama, Grana, Flash <span class="status draft" style="margin-left: 8px; vertical-align: middle;">rascunho</span></div>
+            <div class="meta">datas e multiplicadores ainda não definidos</div>
+          </div>
+          <div class="era-actions">
+            <button class="btn small secondary">Continuar editando</button>
+          </div>
+        </div>
+
+        <!-- Form de edição inline -->
+        <div class="card" style="margin-top: 32px;">
+          <h3 class="card-title">⚙️ Edição rápida · Era II: You and I</h3>
+
+          <div class="three-col">
+            <div class="form-row">
+              <label>Nome da Era</label>
+              <input class="form-input" value="You and I">
+            </div>
+            <div class="form-row">
+              <label>Emoji</label>
+              <input class="form-input" value="💫">
+            </div>
+            <div class="form-row">
+              <label>Frase tema</label>
+              <input class="form-input" value="você e a sua música">
+            </div>
+          </div>
+
+          <div class="two-col" style="margin-top: 8px;">
+            <div class="form-row">
+              <label>Data início</label>
+              <input class="form-input mono" value="20/05/2026 00:00">
+            </div>
+            <div class="form-row">
+              <label>Data fim</label>
+              <input class="form-input mono" value="26/05/2026 23:59">
+            </div>
+          </div>
+
+          <h4 style="font-family: var(--font-display); font-style: italic; font-size: 0.95rem; margin: 16px 0 10px;">Multiplicadores</h4>
+          <div class="check-row">
+            <input type="checkbox" checked>
+            <span>Álbum em foco (<em>tanto, tudo ao mesmo tempo</em>)</span>
+            <span class="multiplier">×2.0</span>
+          </div>
+          <div class="check-row">
+            <input type="checkbox" checked>
+            <span>Álbum anterior (TANTO)</span>
+            <span class="multiplier">×1.5</span>
+          </div>
+          <div class="check-row">
+            <input type="checkbox" checked>
+            <span>Singles antigos</span>
+            <span class="multiplier">×1.2</span>
+          </div>
+          <div class="check-row" style="opacity: 0.6;">
+            <input type="checkbox">
+            <span>Janela de lançamento</span>
+            <span class="multiplier">×3.0</span>
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-top: 18px;">
+            <button class="btn">Salvar rascunho</button>
+            <button class="btn secondary">Ativar Era</button>
+            <button class="btn danger" style="margin-left: auto;">Excluir</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PAGE 3: MISSIONS ===== -->
+    <div class="page" id="missions">
+      <div class="main-header">
+        <h1 class="page-title"><span class="num">03.</span>Missões Pontuais</h1>
+        <div class="main-header-actions">
+          <button class="btn">+ Nova Missão</button>
+          <div class="user-pill">
+            <div class="avatar">D</div>
+            <span>dallyla</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="page" style="padding: 28px 32px; display: block;">
+
+        <div class="two-col">
+          <!-- Lado esquerdo: lista de missões -->
+          <div>
+            <h2 class="section-heading">ativas · 3</h2>
+
+            <div class="mission-card-admin review-pending">
+              <div class="top-row">
+                <div>
+                  <div class="title">📸 Comente no IG do Diego sobre seu favorito do álbum</div>
+                  <div class="stats">
+                    <span>📤 <strong>47</strong> participações</span>
+                    <span style="color: var(--warning);">⏳ <strong>14</strong> aguardando</span>
+                    <span>📅 termina <strong>19/05</strong></span>
+                  </div>
+                </div>
+                <div class="reward">+150 pts</div>
+              </div>
+              <div class="actions">
+                <button class="btn small">Validar prints</button>
+                <button class="btn small secondary">Editar</button>
+              </div>
+            </div>
+
+            <div class="mission-card-admin">
+              <div class="top-row">
+                <div>
+                  <div class="title">🎬 Compartilhe clipe You and I nos Stories</div>
+                  <div class="stats">
+                    <span>📤 <strong>23</strong> participações</span>
+                    <span>✓ <strong>23</strong> validadas</span>
+                    <span>📅 termina <strong>17/05</strong></span>
+                  </div>
+                </div>
+                <div class="reward">+200 pts</div>
+              </div>
+              <div class="actions">
+                <button class="btn small secondary">Editar</button>
+                <button class="btn small secondary">Encerrar</button>
+              </div>
+            </div>
+
+            <div class="mission-card-admin">
+              <div class="top-row">
+                <div>
+                  <div class="title">🎧 Ouça o álbum completo em sequência</div>
+                  <div class="stats">
+                    <span>📤 <strong>89</strong> participações</span>
+                    <span>✓ <strong>89</strong> automáticas</span>
+                    <span>📅 termina <strong>19/05</strong></span>
+                  </div>
+                </div>
+                <div class="reward">+100 pts</div>
+              </div>
+              <div class="actions">
+                <button class="btn small secondary">Editar</button>
+                <button class="btn small secondary">Encerrar</button>
+              </div>
+            </div>
+
+            <h2 class="section-heading" style="margin-top: 24px;">programadas · 1</h2>
+            <div class="mission-card-admin">
+              <div class="top-row">
+                <div>
+                  <div class="title">🎤 Marque presença no Stories no dia do Blue Note</div>
+                  <div class="stats">
+                    <span>📅 ativa em <strong>30/05</strong></span>
+                  </div>
+                </div>
+                <div class="reward">+300 pts</div>
+              </div>
+              <div class="actions">
+                <button class="btn small secondary">Editar</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Lado direito: painel de validação -->
+          <div>
+            <h2 class="section-heading">validar prints</h2>
+            <div class="validation-panel">
+              <div class="validation-progress">
+                <div class="label">Validando <strong>3 de 14</strong> · Comente no IG</div>
+                <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);">← → ↑</div>
+              </div>
+
+              <div class="validation-fan">
+                <div class="user-avatar" style="background: linear-gradient(135deg, var(--cherry-deep), var(--cherry)); color: var(--cream);">🦋</div>
+                <div>
+                  <div class="name">@anaclara</div>
+                  <div class="when">enviado há 2h</div>
+                </div>
+              </div>
+
+              <div class="validation-image-placeholder">
+                [print do comentário no IG]
+              </div>
+
+              <div class="validation-comment">
+                "You and I é minha favorita, me arrepia toda vez!"
+              </div>
+
+              <div class="validation-actions">
+                <button class="btn">✓ Aprovar</button>
+                <button class="btn danger">✗ Rejeitar</button>
+                <button class="btn secondary">⏭ Pular</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PAGE 4: BADGES ===== -->
+    <div class="page" id="badges">
+      <div class="main-header">
+        <h1 class="page-title"><span class="num">04.</span>Badges</h1>
+        <div class="main-header-actions">
+          <button class="btn">+ Criar Badge</button>
+          <div class="user-pill">
+            <div class="avatar">D</div>
+            <span>dallyla</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="page" style="padding: 28px 32px; display: block;">
+
+        <h2 class="section-heading">categoria · volume</h2>
+        <div class="badge-grid-admin">
+          <div class="badge-admin-card">
+            <div class="top">
+              <div class="badge-emoji-big">🥉</div>
+              <div>
+                <div class="name">Ouvinte</div>
+                <div class="category">Volume</div>
+              </div>
+            </div>
+            <div class="desc">50 scrobbles totais do artista</div>
+            <div class="meta">
+              <span class="count">conquistada por <strong>189</strong> fãs</span>
+              <button class="btn small secondary">Editar</button>
+            </div>
+          </div>
+
+          <div class="badge-admin-card">
+            <div class="top">
+              <div class="badge-emoji-big">🥈</div>
+              <div>
+                <div class="name">Fã</div>
+                <div class="category">Volume</div>
+              </div>
+            </div>
+            <div class="desc">500 scrobbles totais do artista</div>
+            <div class="meta">
+              <span class="count">conquistada por <strong>67</strong> fãs</span>
+              <button class="btn small secondary">Editar</button>
+            </div>
+          </div>
+
+          <div class="badge-admin-card">
+            <div class="top">
+              <div class="badge-emoji-big">🥇</div>
+              <div>
+                <div class="name">Superfã</div>
+                <div class="category">Volume</div>
+              </div>
+            </div>
+            <div class="desc">2.000 scrobbles totais do artista</div>
+            <div class="meta">
+              <span class="count">conquistada por <strong>12</strong> fãs</span>
+              <button class="btn small secondary">Editar</button>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="section-heading" style="margin-top: 24px;">categoria · era</h2>
+        <div class="badge-grid-admin">
+          <div class="badge-admin-card">
+            <div class="top">
+              <div class="badge-emoji-big">🪂</div>
+              <div>
+                <div class="name">Em Queda Livre</div>
+                <div class="category">Era · irrecuperável</div>
+              </div>
+            </div>
+            <div class="desc">Esteve no Top 30 da Era I Maio/26</div>
+            <div class="meta">
+              <span class="count">a conferir ao fim da Era</span>
+              <button class="btn small secondary">Editar</button>
+            </div>
+          </div>
+
+          <div class="badge-admin-card">
+            <div class="top">
+              <div class="badge-emoji-big">🎤</div>
+              <div>
+                <div class="name">Hot Stuff Ao Vivo</div>
+                <div class="category">Era · irrecuperável</div>
+              </div>
+            </div>
+            <div class="desc">Scrobble do álbum durante o show Blue Note 30/05 (20-23h)</div>
+            <div class="meta">
+              <span class="count">a conferir em 30/05</span>
+              <button class="btn small secondary">Editar</button>
+            </div>
+          </div>
+
+          <div class="badge-admin-card">
+            <div class="top">
+              <div class="badge-emoji-big">👑</div>
+              <div>
+                <div class="name">Saga Completa Maio/26</div>
+                <div class="category">Era · irrecuperável</div>
+              </div>
+            </div>
+            <div class="desc">Esteve no Top 30 das 4 Eras de Maio</div>
+            <div class="meta">
+              <span class="count">a conferir em 10/06</span>
+              <button class="btn small secondary">Editar</button>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="section-heading" style="margin-top: 24px;">categoria · temporal</h2>
+        <div class="badge-grid-admin">
+          <div class="badge-admin-card">
+            <div class="top">
+              <div class="badge-emoji-big">⭐</div>
+              <div>
+                <div class="name">Day One</div>
+                <div class="category">Temporal</div>
+              </div>
+            </div>
+            <div class="desc">Scrobble nas primeiras 24h de um lançamento</div>
+            <div class="meta">
+              <span class="count">conquistada por <strong>43</strong> fãs</span>
+              <button class="btn small secondary">Editar</button>
+            </div>
+          </div>
+
+          <div class="badge-admin-card">
+            <div class="top">
+              <div class="badge-emoji-big">🔥</div>
+              <div>
+                <div class="name">Constante 7</div>
+                <div class="category">Temporal</div>
+              </div>
+            </div>
+            <div class="desc">7 dias consecutivos com scrobble</div>
+            <div class="meta">
+              <span class="count">conquistada por <strong>78</strong> fãs</span>
+              <button class="btn small secondary">Editar</button>
+            </div>
+          </div>
+
+          <div class="badge-admin-card">
+            <div class="top">
+              <div class="badge-emoji-big">🔥🔥🔥</div>
+              <div>
+                <div class="name">Constante 100</div>
+                <div class="category">Temporal · rara</div>
+              </div>
+            </div>
+            <div class="desc">100 dias consecutivos com scrobble</div>
+            <div class="meta">
+              <span class="count">ainda <strong>ninguém</strong> conquistou</span>
+              <button class="btn small secondary">Editar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PAGE 5: FANS ===== -->
+    <div class="page" id="fans">
+      <div class="main-header">
+        <h1 class="page-title"><span class="num">05.</span>Fãs</h1>
+        <div class="main-header-actions">
+          <input class="search-input" placeholder="🔍 buscar fã, username, e-mail...">
+          <div class="user-pill">
+            <div class="avatar">D</div>
+            <span>dallyla</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="page" style="padding: 28px 32px; display: block;">
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="label">total cadastrados</div>
+            <div class="value">247</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">ativos (24h)</div>
+            <div class="value">89</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">novos (24h)</div>
+            <div class="value">18</div>
+            <span class="delta">+12 vs ontem</span>
+          </div>
+          <div class="stat-card">
+            <div class="label">suspeitos</div>
+            <div class="value" style="color: var(--danger);">2</div>
+            <div class="meta">requer revisão manual</div>
+          </div>
+        </div>
+
+        <h2 class="section-heading">requer atenção</h2>
+        <div class="fan-card suspicious">
+          <div class="avatar-big">⚠️</div>
+          <div class="info">
+            <div class="username">@suspeito_X</div>
+            <div class="details">
+              Last.fm: <span class="mono">suspeito_lf</span>
+              <span class="sep">·</span> cadastro: <strong>11/05</strong>
+              <span class="sep">·</span> <span style="color: var(--danger);">547 scrobbles em 1h</span>
+            </div>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn small secondary">Investigar</button>
+            <button class="btn small danger">Banir</button>
+          </div>
+        </div>
+
+        <div class="fan-card suspicious">
+          <div class="avatar-big">⚠️</div>
+          <div class="info">
+            <div class="username">@bot_demo</div>
+            <div class="details">
+              Last.fm: <span class="mono">bot_demo_lf</span>
+              <span class="sep">·</span> cadastro: <strong>12/05</strong>
+              <span class="sep">·</span> <span style="color: var(--danger);">padrão idêntico de músicas</span>
+            </div>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button class="btn small secondary">Investigar</button>
+            <button class="btn small danger">Banir</button>
+          </div>
+        </div>
+
+        <h2 class="section-heading" style="margin-top: 24px;">top fãs · era atual</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 50px;">#</th>
+                <th>Fã</th>
+                <th>Last.fm</th>
+                <th>Cadastro</th>
+                <th>Era atual</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong style="color: var(--gold); font-family: var(--font-display); font-style: italic;">1</strong></td>
+                <td><span class="user-avatar">⭐</span><strong>@anaclara</strong><span class="cell-meta">ana@email.com</span></td>
+                <td class="mono">ana_clara_lf</td>
+                <td>13/05</td>
+                <td><strong>8.200 pts</strong></td>
+                <td><span class="status active">ativa</span></td>
+                <td><button class="btn small secondary">Ver perfil</button></td>
+              </tr>
+              <tr>
+                <td><strong style="color: var(--gold); font-family: var(--font-display); font-style: italic;">2</strong></td>
+                <td><span class="user-avatar">🎭</span><strong>@bruno_g</strong><span class="cell-meta">bruno@email.com</span></td>
+                <td class="mono">brunog</td>
+                <td>13/05</td>
+                <td><strong>7.100 pts</strong></td>
+                <td><span class="status active">ativa</span></td>
+                <td><button class="btn small secondary">Ver perfil</button></td>
+              </tr>
+              <tr>
+                <td><strong style="color: var(--gold); font-family: var(--font-display); font-style: italic;">3</strong></td>
+                <td><span class="user-avatar">🌙</span><strong>@carolzinha</strong><span class="cell-meta">carol@email.com</span></td>
+                <td class="mono">carol_diego</td>
+                <td>13/05</td>
+                <td><strong>6.450 pts</strong></td>
+                <td><span class="status active">ativa</span></td>
+                <td><button class="btn small secondary">Ver perfil</button></td>
+              </tr>
+              <tr>
+                <td><strong style="color: var(--gold); font-family: var(--font-display); font-style: italic;">4</strong></td>
+                <td><span class="user-avatar">🦋</span><strong>@daniel_</strong><span class="cell-meta">dani@email.com</span></td>
+                <td class="mono">danielm</td>
+                <td>13/05</td>
+                <td><strong>5.890 pts</strong></td>
+                <td><span class="status active">ativa</span></td>
+                <td><button class="btn small secondary">Ver perfil</button></td>
+              </tr>
+              <tr>
+                <td><strong style="color: var(--gold); font-family: var(--font-display); font-style: italic;">5</strong></td>
+                <td><span class="user-avatar">🎭</span><strong>Anônimo</strong><span class="cell-meta">modo anônimo ativo</span></td>
+                <td class="mono">****_lf</td>
+                <td>13/05</td>
+                <td><strong>5.420 pts</strong></td>
+                <td><span class="status active">ativa</span></td>
+                <td><button class="btn small secondary">Ver perfil</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PAGE 6: APURATION ===== -->
+    <div class="page" id="apuration">
+      <div class="main-header">
+        <h1 class="page-title"><span class="num">06.</span>Apuração</h1>
+        <div class="main-header-actions">
+          <div class="user-pill">
+            <div class="avatar">D</div>
+            <span>dallyla</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="page" style="padding: 28px 32px; display: block;">
+
+        <!-- Era em apuração -->
+        <div class="card" style="margin-bottom: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div>
+              <div style="font-family: var(--font-display); font-size: 0.72rem; font-style: italic; letter-spacing: 0.15em; text-transform: uppercase; color: var(--warning);">aguardando apuração</div>
+              <h3 style="font-family: var(--font-display); font-size: 1.4rem; font-style: italic; font-weight: 500; margin-top: 4px;">Era I: Queda Livre <span style="font-family: var(--font-script); color: var(--gold); font-size: 1.1rem;">— a fechar</span></h3>
+              <div style="font-size: 0.84rem; color: var(--text-secondary); margin-top: 4px;">encerrou em <strong>19/05 23:59</strong> · 247 participantes</div>
+            </div>
+            <button class="btn">Iniciar apuração</button>
+          </div>
+
+          <h4 class="section-heading">top 10 final</h4>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 60px;">#</th>
+                  <th>Fã</th>
+                  <th>Pontos</th>
+                  <th>Prêmio</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong style="color: var(--gold); font-family: var(--font-display); font-style: italic; font-size: 1.2rem;">🥇 1</strong></td>
+                  <td><span class="user-avatar">⭐</span><strong>@anaclara</strong></td>
+                  <td><strong>12.450 pts</strong></td>
+                  <td>Pack Premium</td>
+                  <td><span class="status delivered">revisado</span></td>
+                  <td><button class="btn small secondary">Last.fm</button></td>
+                </tr>
+                <tr>
+                  <td><strong style="color: var(--gold); font-family: var(--font-display); font-style: italic; font-size: 1.2rem;">🥈 2</strong></td>
+                  <td><span class="user-avatar">🎭</span><strong>@bruno_g</strong></td>
+                  <td><strong>11.200 pts</strong></td>
+                  <td>Pack Normal</td>
+                  <td><span class="status pending">não revisado</span></td>
+                  <td><button class="btn small">Revisar</button></td>
+                </tr>
+                <tr>
+                  <td><strong style="color: var(--gold); font-family: var(--font-display); font-style: italic; font-size: 1.2rem;">🥉 3</strong></td>
+                  <td><span class="user-avatar">🌙</span><strong>@carolzinha</strong></td>
+                  <td><strong>10.890 pts</strong></td>
+                  <td>Pack Normal</td>
+                  <td><span class="status delivered">revisado</span></td>
+                  <td><button class="btn small secondary">Last.fm</button></td>
+                </tr>
+                <tr>
+                  <td><strong style="color: var(--text-secondary); font-family: var(--font-display); font-style: italic;">4</strong></td>
+                  <td><span class="user-avatar">🦋</span><strong>@daniel_</strong></td>
+                  <td><strong>9.450 pts</strong></td>
+                  <td>Badge Top 10</td>
+                  <td><span class="status delivered">revisado</span></td>
+                  <td><button class="btn small secondary">Last.fm</button></td>
+                </tr>
+                <tr>
+                  <td><strong style="color: var(--text-secondary); font-family: var(--font-display); font-style: italic;">5</strong></td>
+                  <td><span class="user-avatar">🎭</span><strong>Anônimo</strong></td>
+                  <td><strong>8.890 pts</strong></td>
+                  <td>Badge Top 10</td>
+                  <td><span class="status delivered">revisado</span></td>
+                  <td><button class="btn small secondary">Last.fm</button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="margin-top: 16px; padding: 14px; background: var(--bg-elevated); border-radius: 10px; font-size: 0.84rem; color: var(--text-secondary);">
+            ⚠️ <strong>1 fã ainda não revisado.</strong> Recomenda-se revisar manualmente o histórico Last.fm de todos do top 10 antes de confirmar a apuração.
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-top: 16px;">
+            <button class="btn">Confirmar apuração e anunciar</button>
+            <button class="btn secondary">Exportar lista CSV</button>
+          </div>
+        </div>
+
+        <!-- Histórico de apurações -->
+        <h2 class="section-heading">histórico</h2>
+        <div class="card" style="text-align: center; padding: 32px;">
+          <div style="font-family: var(--font-script); font-size: 1.4rem; color: var(--gold); margin-bottom: 4px;">primeira temporada</div>
+          <div style="color: var(--text-secondary); font-size: 0.88rem;">Ainda não há apurações concluídas. A Era I será a primeira.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PAGE 7: SHIPMENTS ===== -->
+    <div class="page" id="shipments">
+      <div class="main-header">
+        <h1 class="page-title"><span class="num">07.</span>Envio de Prêmios</h1>
+        <div class="main-header-actions">
+          <button class="btn secondary">📊 Relatório de envios</button>
+          <div class="user-pill">
+            <div class="avatar">D</div>
+            <span>dallyla</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="page" style="padding: 28px 32px; display: block;">
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="label">pendentes</div>
+            <div class="value" style="color: var(--warning);">5</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">prontos pra envio</div>
+            <div class="value">2</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">enviados (mês)</div>
+            <div class="value">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">custo total · mês</div>
+            <div class="value">R$ 0</div>
+            <div class="meta">orçamento R$ 364</div>
+          </div>
+        </div>
+
+        <h2 class="section-heading">aguardando endereço · 3</h2>
+
+        <div class="shipment-card pending">
+          <div class="icon-big">📦</div>
+          <div class="info">
+            <div class="winner">@anaclara · Era I Top 1</div>
+            <div class="what">Pack Premium de Adesivos</div>
+            <div class="timing">notificada em <strong>20/05 09:00</strong> · prazo do fã até <strong>27/05</strong></div>
+          </div>
+          <div class="actions">
+            <span class="status pending">aguardando</span>
+            <button class="btn small secondary">Reenviar lembrete</button>
+          </div>
+        </div>
+
+        <div class="shipment-card pending">
+          <div class="icon-big">📦</div>
+          <div class="info">
+            <div class="winner">@carolzinha · Era I Top 3</div>
+            <div class="what">Pack Normal de Adesivos</div>
+            <div class="timing">notificada em <strong>20/05 09:00</strong> · prazo do fã até <strong>27/05</strong></div>
+          </div>
+          <div class="actions">
+            <span class="status pending">aguardando</span>
+            <button class="btn small secondary">Reenviar lembrete</button>
+          </div>
+        </div>
+
+        <div class="shipment-card pending">
+          <div class="icon-big">☕</div>
+          <div class="info">
+            <div class="winner">@TBD · Top 1 Mensal Maio/26</div>
+            <div class="what">Caneca Maio/26 + Pack Premium</div>
+            <div class="timing">apuração em <strong>10/06</strong></div>
+          </div>
+          <div class="actions">
+            <span class="status scheduled">previsto</span>
+          </div>
+        </div>
+
+        <h2 class="section-heading" style="margin-top: 24px;">prontos pra envio · 2</h2>
+
+        <div class="shipment-card">
+          <div class="icon-big">📦</div>
+          <div class="info">
+            <div class="winner">@bruno_g · Era I Top 2</div>
+            <div class="what">Pack Normal de Adesivos</div>
+            <div class="timing">endereço confirmado · <span class="mono">Rua das Flores, 123 · Recife/PE</span></div>
+          </div>
+          <div class="actions">
+            <button class="btn small">Marcar como enviado</button>
+            <button class="btn small secondary">Imprimir etiqueta</button>
+          </div>
+        </div>
+
+        <div class="shipment-card">
+          <div class="icon-big">📦</div>
+          <div class="info">
+            <div class="winner">@daniel_ · Era I Top 4</div>
+            <div class="what">Pack Normal de Adesivos (sorteio top 4-10)</div>
+            <div class="timing">endereço confirmado · <span class="mono">Av. Boa Viagem, 45 · Recife/PE</span></div>
+          </div>
+          <div class="actions">
+            <button class="btn small">Marcar como enviado</button>
+            <button class="btn small secondary">Imprimir etiqueta</button>
+          </div>
+        </div>
+
+        <h2 class="section-heading" style="margin-top: 24px;">enviados · 0</h2>
+        <h2 class="section-heading">entregues · 0</h2>
+
+        <div class="card" style="text-align: center; padding: 32px;">
+          <div style="font-family: var(--font-script); font-size: 1.4rem; color: var(--gold); margin-bottom: 4px;">aguardando os primeiros envios</div>
+          <div style="color: var(--text-secondary); font-size: 0.88rem;">Os adesivos devem chegar do fornecedor em até 22/05.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PAGE 8: REPORTS ===== -->
+    <div class="page" id="reports">
+      <div class="main-header">
+        <h1 class="page-title"><span class="num">08.</span>Relatórios</h1>
+        <div class="main-header-actions">
+          <select class="form-select" style="width: auto;">
+            <option>Maio/2026</option>
+            <option>Abril/2026</option>
+          </select>
+          <button class="btn secondary">📤 Exportar</button>
+          <div class="user-pill">
+            <div class="avatar">D</div>
+            <span>dallyla</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="page" style="padding: 28px 32px; display: block;">
+
+        <div class="two-col">
+          <!-- Streams gerados -->
+          <div class="card">
+            <h3 class="card-title">🎧 Streams gerados</h3>
+            <div class="chart-placeholder" style="height: 220px;">
+              <div class="chart-bar shorter"></div>
+              <div class="chart-bar short"></div>
+              <div class="chart-bar shorter"></div>
+              <div class="chart-bar shorter"></div>
+              <div class="chart-bar short"></div>
+              <div class="chart-bar short"></div>
+              <div class="chart-bar tallest"></div>
+              <div class="chart-bar tall"></div>
+              <div class="chart-bar med"></div>
+              <div class="chart-bar tall"></div>
+              <div class="chart-bar med"></div>
+              <div class="chart-bar tall"></div>
+              <div class="chart-bar tall"></div>
+            </div>
+            <div style="text-align: center; margin-top: 12px; font-family: var(--font-display); font-style: italic; font-size: 1.5rem;">
+              142.380 scrobbles
+              <div style="font-size: 0.78rem; color: var(--success); margin-top: 4px; font-family: var(--font-body); font-style: normal; font-weight: 600;">+28% vs antes do clube</div>
+            </div>
+          </div>
+
+          <!-- Composição -->
+          <div class="card">
+            <h3 class="card-title">📊 Composição dos pontos</h3>
+            <div class="report-row">
+              <div class="metric">Scrobbles do álbum em foco</div>
+              <div class="val">68% <span class="delta">↑</span></div>
+            </div>
+            <div class="report-row">
+              <div class="metric">Scrobbles outros álbuns</div>
+              <div class="val">21%</div>
+            </div>
+            <div class="report-row">
+              <div class="metric">Missões pontuais</div>
+              <div class="val">8% <span class="delta">+3%</span></div>
+            </div>
+            <div class="report-row">
+              <div class="metric">Bônus de streak</div>
+              <div class="val">2%</div>
+            </div>
+            <div class="report-row">
+              <div class="metric">Outros bônus</div>
+              <div class="val">1%</div>
+            </div>
+          </div>
+        </div>
+
+        <h2 class="section-heading" style="margin-top: 24px;">aquisição & engajamento</h2>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="label">novos fãs</div>
+            <div class="value">247</div>
+            <span class="delta">+18 hoje</span>
+          </div>
+          <div class="stat-card">
+            <div class="label">taxa cadastro/dia</div>
+            <div class="value">~14</div>
+          </div>
+          <div class="stat-card">
+            <div class="label">retenção 7 dias</div>
+            <div class="value">64%</div>
+            <span class="delta">+8% vs semana anterior</span>
+          </div>
+          <div class="stat-card">
+            <div class="label">DAU/MAU</div>
+            <div class="value">45%</div>
+            <div class="meta">muito acima da média</div>
+          </div>
+        </div>
+
+        <div class="two-col" style="margin-top: 24px;">
+          <div class="card">
+            <h3 class="card-title">💰 Custos do mês</h3>
+            <div class="report-row">
+              <div class="metric">Adesivos produzidos</div>
+              <div class="val">R$ 0</div>
+            </div>
+            <div class="report-row">
+              <div class="metric">Canecas produzidas</div>
+              <div class="val">R$ 0</div>
+            </div>
+            <div class="report-row">
+              <div class="metric">Frete</div>
+              <div class="val">R$ 0</div>
+            </div>
+            <div class="report-row">
+              <div class="metric">Design freelancer</div>
+              <div class="val">R$ 800</div>
+            </div>
+            <div class="report-row">
+              <div class="metric"><strong>Total · maio</strong></div>
+              <div class="val" style="color: var(--gold);">R$ 800</div>
+            </div>
+            <div class="report-row" style="border-top: 1px solid var(--border); padding-top: 14px; margin-top: 8px;">
+              <div class="metric">Custo por fã ativo</div>
+              <div class="val">R$ 8,99</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3 class="card-title">🏆 Highlights do mês</h3>
+            <div class="timeline">
+              <div class="timeline-item done">
+                <div class="when">7 mai</div>
+                <div class="what"><strong>Lançamento do álbum</strong> — pico de scrobbles registrado</div>
+              </div>
+              <div class="timeline-item done">
+                <div class="when">13 mai</div>
+                <div class="what"><strong>TANTO Clube lançado</strong> — 247 cadastros em 24h</div>
+              </div>
+              <div class="timeline-item pending">
+                <div class="when">19 mai</div>
+                <div class="what">Fim da Era I "Queda Livre" — apuração</div>
+              </div>
+              <div class="timeline-item pending">
+                <div class="when">30 mai</div>
+                <div class="what">Show Blue Note — badge irrecuperável ativa</div>
+              </div>
+              <div class="timeline-item pending">
+                <div class="when">10 jun</div>
+                <div class="what">Apuração mensal — primeira Caneca Maio/26</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PAGE 9: SETTINGS ===== -->
+    <div class="page" id="settings">
+      <div class="main-header">
+        <h1 class="page-title"><span class="num">09.</span>Configurações Gerais</h1>
+        <div class="main-header-actions">
+          <button class="btn">Salvar alterações</button>
+          <div class="user-pill">
+            <div class="avatar">D</div>
+            <span>dallyla</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="page" style="padding: 28px 32px; display: block;">
+
+        <div class="settings-section">
+          <h3>🎤 Artista em foco</h3>
+          <div class="two-col">
+            <div class="form-row">
+              <label>Nome do artista</label>
+              <input class="form-input" value="Diego Martins">
+            </div>
+            <div class="form-row">
+              <label>Last.fm artist name (chave de busca)</label>
+              <input class="form-input mono" value="Diego Martins">
+            </div>
+          </div>
+          <div class="two-col">
+            <div class="form-row">
+              <label>Álbum em foco (campanha ativa)</label>
+              <select class="form-select">
+                <option>tanto, tudo ao mesmo tempo (ao vivo) · 18 faixas</option>
+                <option>TANTO · 12 faixas</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label>Data de lançamento (pra janela)</label>
+              <input class="form-input mono" value="07/05/2026">
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>🔌 Integrações</h3>
+          <div class="form-row">
+            <label>Last.fm API Key</label>
+            <input class="form-input mono" type="password" value="lfm_••••••••••••••••3a7b">
+          </div>
+          <div class="two-col">
+            <div class="form-row">
+              <label>Frequência de polling por fã</label>
+              <select class="form-select">
+                <option>A cada 1 hora</option>
+                <option selected>A cada 3 horas</option>
+                <option>A cada 6 horas</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label>Provedor de e-mail</label>
+              <select class="form-select">
+                <option>Resend</option>
+                <option>SendGrid</option>
+                <option>Postmark</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>🛡️ Anti-fraude</h3>
+          <div class="three-col">
+            <div class="form-row">
+              <label>Cap diário · álbum em foco</label>
+              <input class="form-input mono" value="150">
+            </div>
+            <div class="form-row">
+              <label>Cap diário · artista geral</label>
+              <input class="form-input mono" value="200">
+            </div>
+            <div class="form-row">
+              <label>Cap por hora</label>
+              <input class="form-input mono" value="25">
+            </div>
+          </div>
+          <div class="two-col">
+            <div class="form-row">
+              <label>Idade mínima conta Last.fm · cadastro</label>
+              <input class="form-input mono" value="7 dias">
+            </div>
+            <div class="form-row">
+              <label>Idade mínima · receber prêmio físico</label>
+              <input class="form-input mono" value="30 dias">
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>📬 Notificações push</h3>
+          <div class="check-row">
+            <input type="checkbox" checked>
+            <span>Nova Era começou</span>
+            <span class="multiplier" style="color: var(--text-secondary); font-family: var(--font-body); font-size: 0.78rem; font-style: normal;">segunda 09:00</span>
+          </div>
+          <div class="check-row">
+            <input type="checkbox" checked>
+            <span>Vencedores anunciados</span>
+            <span class="multiplier" style="color: var(--text-secondary); font-family: var(--font-body); font-size: 0.78rem; font-style: normal;">segunda 12:00</span>
+          </div>
+          <div class="check-row">
+            <input type="checkbox" checked>
+            <span>Quebra de streak iminente</span>
+            <span class="multiplier" style="color: var(--text-secondary); font-family: var(--font-body); font-size: 0.78rem; font-style: normal;">21:00 se sem scrobble</span>
+          </div>
+          <div class="check-row">
+            <input type="checkbox" checked>
+            <span>Resultado mensal</span>
+            <span class="multiplier" style="color: var(--text-secondary); font-family: var(--font-body); font-size: 0.78rem; font-style: normal;">dia 10 às 10:00</span>
+          </div>
+        </div>
+
+        <div class="settings-section">
+          <h3>👥 Administradores</h3>
+          <div class="fan-card" style="margin-bottom: 8px;">
+            <div class="avatar-big" style="background: linear-gradient(135deg, var(--cherry-deep), var(--cherry)); color: var(--cream);">D</div>
+            <div class="info">
+              <div class="username">@dallyla <span class="status active" style="margin-left: 6px;">você</span></div>
+              <div class="details">dallyla@email.com · administrador desde 13/05</div>
+            </div>
+            <span style="font-size: 0.78rem; color: var(--text-muted);">acesso total</span>
+          </div>
+          <button class="btn secondary">+ Adicionar administrador</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Page indicator -->
+<div class="page-indicator" id="indicator">01 · Dashboard</div>
+
+<script>
+function setTheme(theme) {
+  document.body.dataset.theme = theme;
+  document.querySelectorAll('.theme-toggle button').forEach(btn => {
+    btn.classList.remove('active');
+    if (btn.textContent === (theme === 'dark' ? 'escuro' : 'claro')) {
+      btn.classList.add('active');
+    }
+  });
+}
+
+const pageInfo = {
+  'dashboard': '01 · Dashboard',
+  'eras': '02 · Eras & Desafios',
+  'missions': '03 · Missões',
+  'badges': '04 · Badges',
+  'fans': '05 · Fãs',
+  'apuration': '06 · Apuração',
+  'shipments': '07 · Envio',
+  'reports': '08 · Relatórios',
+  'settings': '09 · Configurações'
+};
+
+function showPage(pageId) {
+  // Hide all pages
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  // Show the selected page
+  const page = document.getElementById(pageId);
+  if (page) page.classList.add('active');
+
+  // Update sidebar active state
+  document.querySelectorAll('.sidebar-item').forEach(item => item.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+
+  // Update page indicator
+  document.getElementById('indicator').textContent = pageInfo[pageId] || pageId;
+
+  // Scroll to top
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>

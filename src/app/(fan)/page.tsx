@@ -406,7 +406,7 @@ export default async function HomePage() {
                   <span className="w-7 text-center text-xl flex-shrink-0">{MEDAL_EMOJI[idx]}</span>
                   <div
                     className="w-8 h-8 rounded-full flex items-center justify-center text-base leading-none flex-shrink-0 overflow-hidden"
-                    style={{ background: "linear-gradient(135deg, var(--color-cherry-deep), var(--color-cherry))" }}
+                    style={{ background: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
                   >
                     {imgUrl ? (
                       <img src={imgUrl} alt={name} className="w-full h-full object-cover" />
