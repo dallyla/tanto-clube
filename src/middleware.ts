@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 // Rotas que precisam de sessão ativa
-const PROTECTED = ["/onboarding", "/profile", "/era", "/badges"];
+const PROTECTED = ["/onboarding", "/profile", "/era", "/badges", "/admin"];
 // Rotas só para quem NÃO está logado
 const AUTH_ONLY = ["/login", "/verify"];
 

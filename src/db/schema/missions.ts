@@ -13,6 +13,7 @@ export const missions = pgTable("missions", {
   eraId: uuid("era_id").references(() => eras.id, { onDelete: "set null" }),
   title: text("title").notNull(),
   description: text("description").notNull(),
+  emoji: text("emoji").default("📋").notNull(),
   pointsReward: integer("points_reward").notNull(),
   requiresScreenshot: boolean("requires_screenshot").default(true).notNull(),
   maxCompletionsPerUser: integer("max_completions_per_user").default(1).notNull(),

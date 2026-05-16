@@ -7,9 +7,11 @@ import { users } from "@/db/schema/users";
 import { eras } from "@/db/schema/eras";
 import { events } from "@/db/schema/events";
 import { pointsTransactions } from "@/db/schema/points";
-import { eq, desc, gte, asc, sum } from "drizzle-orm";
+import { eq, desc, gte, asc, sum, and, or, isNull, lte, inArray } from "drizzle-orm";
 import { formatPoints } from "@/lib/utils";
 import { getFanLevel } from "@/lib/fan-level";
+import { missions, missionSubmissions } from "@/db/schema/missions";
+import { MissionCard } from "./mission-card";
 
 export const metadata: Metadata = { title: "Home" };
 export const revalidate = 60;
@@ -64,6 +66,56 @@ export default async function HomePage() {
     .where(gte(events.scheduledAt, new Date()))
     .orderBy(asc(events.scheduledAt))
     .limit(3);
+
+  const now = new Date();
+
+  const activeMissions = await db
+    .select({
+      id: missions.id,
+      title: missions.title,
+      emoji: missions.emoji,
+      description: missions.description,
+      pointsReward: missions.pointsReward,
+      requiresScreenshot: missions.requiresScreenshot,
+      endsAt: missions.endsAt,
+      eraName: eras.name,
+    })
+    .from(missions)
+    .leftJoin(eras, eq(missions.eraId, eras.id))
+    .where(
+      and(
+        eq(missions.isActive, true),
+        or(isNull(missions.startsAt), lte(missions.startsAt, now))
+      )
+    )
+    .orderBy(asc(missions.createdAt));
+
+  const missionIds = activeMissions.map((m) => m.id);
+  const userSubmissions =
+    missionIds.length > 0
+      ? await db
+          .select({
+            missionId: missionSubmissions.missionId,
+            status: missionSubmissions.status,
+            rejectionReason: missionSubmissions.rejectionReason,
+          })
+          .from(missionSubmissions)
+          .where(
+            and(
+              eq(missionSubmissions.userId, session.user.id),
+              inArray(missionSubmissions.missionId, missionIds)
+            )
+          )
+      : [];
+
+  // Pick the most relevant status per mission: approved > pending > rejected
+  const submissionMap = new Map<string, { status: "pending" | "approved" | "rejected"; rejectionReason: string | null }>();
+  for (const s of userSubmissions) {
+    const cur = submissionMap.get(s.missionId);
+    if (!cur || s.status === "approved" || (s.status === "pending" && cur.status === "rejected")) {
+      submissionMap.set(s.missionId, { status: s.status, rejectionReason: s.rejectionReason ?? null });
+    }
+  }
 
   const topFans = await db
     .select({
@@ -281,6 +333,45 @@ export default async function HomePage() {
           <span className="font-display italic text-gold text-sm">+50</span>
         </div>
       </div>
+
+      {/* Missões */}
+      {activeMissions.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <span
+              className="font-display italic text-xs tracking-widest uppercase"
+              style={{ color: "var(--color-gold)" }}
+            >
+              missões
+            </span>
+            <div className="flex-1" style={{ borderTop: "1px solid var(--color-border)" }} />
+          </div>
+
+          <div
+            className="rounded-xl overflow-hidden"
+            style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
+          >
+            {activeMissions.map((m, idx) => {
+              const isLast = idx === activeMissions.length - 1;
+              return (
+                <div
+                  key={m.id}
+                  style={!isLast ? { borderBottom: "1px dashed var(--color-border)" } : undefined}
+                >
+                  <MissionCard
+                    m={{
+                      ...m,
+                      eraName: m.eraName ?? null,
+                      initialStatus: submissionMap.get(m.id)?.status ?? null,
+                      rejectionReason: submissionMap.get(m.id)?.rejectionReason ?? null,
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Próxima conquista */}
       {pointsToNext !== null && nextLevelName && (

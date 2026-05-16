@@ -43,6 +43,9 @@
   --color-ring: #c8a45c;
   --radius: 0.75rem;
 
+  /* Sidebar (admin) */
+  --color-bg-sidebar: #150f0c;
+
   /* Fonts */
   --font-display: 'Fraunces', serif;
   --font-script: 'Caveat', cursive;
@@ -90,6 +93,7 @@
   --color-border-strong: rgba(139, 111, 58, 0.35);
   --color-input: #efe5d0;
   --color-ring: #a17a2d;
+  --color-bg-sidebar: #ede1c8;
 }
 
 /* Cherry containers restore light text so buttons stay readable */
