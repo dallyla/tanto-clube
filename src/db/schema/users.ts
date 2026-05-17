@@ -30,6 +30,9 @@ export const users = pgTable("users", {
   lastPollAt: timestamp("last_poll_at", { withTimezone: true }),
   pollIntervalHours: integer("poll_interval_hours").default(2).notNull(),
 
+  // Admin moderation
+  suspicionDismissedAt: timestamp("suspicion_dismissed_at", { withTimezone: true }),
+
   // Settings
   anonymousMode: boolean("anonymous_mode").default(false).notNull(),
   themePreference: text("theme_preference").default("dark"),

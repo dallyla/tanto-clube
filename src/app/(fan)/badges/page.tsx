@@ -145,10 +145,19 @@ export default async function BadgesPage() {
     .from(badges)
     .orderBy(badges.displayOrder);
 
-  const earnedRows = await db
+  const earnedRowsRaw = await db
     .select({ badgeId: userBadges.badgeId, earnedAt: userBadges.earnedAt })
     .from(userBadges)
-    .where(eq(userBadges.userId, session.user.id));
+    .where(eq(userBadges.userId, session.user.id))
+    .orderBy(userBadges.earnedAt);
+
+  // Deduplicate keeping earliest earnedAt per badge
+  const seenBadgeIds = new Set<string>();
+  const earnedRows = earnedRowsRaw.filter((r) => {
+    if (seenBadgeIds.has(r.badgeId)) return false;
+    seenBadgeIds.add(r.badgeId);
+    return true;
+  });
 
   const earnedSet = new Set(earnedRows.map((r) => r.badgeId));
   const earnedByBadgeId = new Map(earnedRows.map((r) => [r.badgeId, r.earnedAt]));

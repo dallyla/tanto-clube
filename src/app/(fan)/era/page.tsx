@@ -133,8 +133,40 @@ export default async function EraPage() {
     new Map<string, SubmissionForCard>()
   );
 
+  // Fetch album art from Last.fm (cached 1h)
+  let albumArtUrl: string | null = null;
+  if (era.focusAlbum) {
+    try {
+      const lfmUrl = new URL("https://ws.audioscrobbler.com/2.0/");
+      lfmUrl.searchParams.set("method", "album.getinfo");
+      lfmUrl.searchParams.set("api_key", process.env.LASTFM_API_KEY!);
+      lfmUrl.searchParams.set("artist", era.artistName);
+      lfmUrl.searchParams.set("album", era.focusAlbum);
+      lfmUrl.searchParams.set("format", "json");
+      const lfmRes = await fetch(lfmUrl.toString(), { next: { revalidate: 3600 } });
+      if (lfmRes.ok) {
+        const lfmData = await lfmRes.json() as { album?: { image?: { "#text": string; size: string }[] } };
+        const images = lfmData.album?.image ?? [];
+        albumArtUrl =
+          images.find((img) => img.size === "large")?.["#text"] ||
+          images.find((img) => img.size === "extralarge")?.["#text"] ||
+          null;
+        if (!albumArtUrl) albumArtUrl = null;
+      }
+    } catch {
+      // silently ignore, art is optional
+    }
+  }
+
   // Build active multiplier cards
-  const multipliers: { tag: string; desc: string }[] = [];
+  type MultiplierCard = {
+    tag: string;
+    desc: string;
+    albumArt?: string | null;
+    albumName?: string;
+    tracks?: string[];
+  };
+  const multipliers: MultiplierCard[] = [];
 
   if (era.launchWindowEndsAt && era.launchWindowEndsAt > now) {
     const lw = parseFloat(era.launchWindowMultiplier);
@@ -150,7 +182,9 @@ export default async function EraPage() {
   if (focusAlbumMult > 1) {
     multipliers.push({
       tag: formatMult(era.focusAlbumMultiplier),
-      desc: era.focusAlbum ? `Álbum em foco · ${era.focusAlbum}` : "Álbum em foco",
+      desc: "Álbum em foco",
+      albumArt: albumArtUrl,
+      albumName: era.focusAlbum ?? undefined,
     });
   }
 
@@ -158,7 +192,8 @@ export default async function EraPage() {
   if (focusTrackMult > 1 && era.focusTracks && era.focusTracks.length > 0) {
     multipliers.push({
       tag: formatMult(era.focusTrackMultiplier),
-      desc: `Faixas em destaque (${era.focusTracks.length} música${era.focusTracks.length > 1 ? "s" : ""})`,
+      desc: `Faixas em destaque`,
+      tracks: era.focusTracks,
     });
   }
 
@@ -266,25 +301,78 @@ export default async function EraPage() {
             {multipliers.map((m, i) => (
               <div
                 key={i}
-                className="flex items-center gap-3 rounded-xl px-4 py-3"
+                className="flex items-start gap-3 rounded-xl px-4 py-3"
                 style={{
                   background: "var(--color-bg-card)",
                   border: "1px solid var(--color-border)",
                 }}
               >
+                {/* Badge */}
                 <span
-                  className="font-display italic font-semibold text-sm px-3 py-1 rounded-lg flex-shrink-0"
+                  className="font-display italic font-bold text-base px-3 py-1 rounded-lg flex-shrink-0 mt-0.5"
                   style={{
-                    background:
-                      "linear-gradient(135deg, var(--color-cherry-deep), var(--color-cherry))",
-                    color: "var(--color-cream)",
+                    background: "linear-gradient(135deg, var(--color-cherry-deep), var(--color-cherry))",
+                    color: "#ffffff",
+                    minWidth: "2.8rem",
+                    textAlign: "center",
+                    letterSpacing: "0.01em",
+                    textShadow: "0 1px 2px rgba(0,0,0,0.4)",
                   }}
                 >
                   {m.tag}
                 </span>
-                <span className="text-sm" style={{ color: "var(--color-muted-foreground)" }}>
-                  {m.desc}
-                </span>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  {/* Album row */}
+                  {m.albumName ? (
+                    <div className="flex items-center gap-2">
+                      {m.albumArt && (
+                        <img
+                          src={m.albumArt}
+                          alt={m.albumName}
+                          width={36}
+                          height={36}
+                          className="rounded flex-shrink-0"
+                          style={{ border: "1px solid var(--color-border)" }}
+                        />
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-xs" style={{ color: "var(--color-muted-foreground)" }}>
+                          {m.desc}
+                        </p>
+                        <p className="text-sm font-semibold truncate" style={{ color: "var(--color-cream)" }}>
+                          {m.albumName}
+                        </p>
+                      </div>
+                    </div>
+                  ) : m.tracks ? (
+                    /* Tracks list */
+                    <div>
+                      <p className="text-sm" style={{ color: "var(--color-muted-foreground)" }}>
+                        {m.desc}{" "}
+                        <span className="text-xs">({m.tracks.length} {m.tracks.length === 1 ? "música" : "músicas"})</span>
+                      </p>
+                      <ul className="mt-1.5 flex flex-col gap-0.5">
+                        {m.tracks.map((track, ti) => (
+                          <li
+                            key={ti}
+                            className="text-sm font-medium flex items-center gap-1.5"
+                            style={{ color: "var(--color-cream)" }}
+                          >
+                            <span style={{ color: "var(--color-gold)", fontSize: "10px" }}>♪</span>
+                            {track}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : (
+                    /* Default */
+                    <p className="text-sm pt-0.5" style={{ color: "var(--color-muted-foreground)" }}>
+                      {m.desc}
+                    </p>
+                  )}
+                </div>
               </div>
             ))}
           </div>

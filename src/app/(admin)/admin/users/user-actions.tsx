@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 type User = {
   id: string;
@@ -9,10 +10,11 @@ type User = {
   banReason: string | null;
 };
 
-export function UserActions({ user, onUpdate }: { user: User; onUpdate: (id: string, isBanned: boolean, reason: string | null) => void }) {
+export function UserActions({ user, onUpdate }: { user: User; onUpdate?: (id: string, isBanned: boolean, reason: string | null) => void }) {
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [reason, setReason] = useState("");
+  const router = useRouter();
 
   async function handleAction(action: "ban" | "unban") {
     setLoading(true);
@@ -27,7 +29,11 @@ export function UserActions({ user, onUpdate }: { user: User; onUpdate: (id: str
         alert(data.error ?? "Erro ao processar");
         return;
       }
-      onUpdate(user.id, action === "ban", action === "ban" ? reason : null);
+      if (onUpdate) {
+        onUpdate(user.id, action === "ban", action === "ban" ? reason : null);
+      } else {
+        router.refresh();
+      }
       setShowModal(false);
       setReason("");
     } catch {

@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth/config";
 import { db } from "@/db";
 import { users } from "@/db/schema/users";
 import { eras } from "@/db/schema/eras";
+import { eraPrizePacks } from "@/db/schema/prizes";
 import { eq, desc } from "drizzle-orm";
 
 async function getAdmin() {
@@ -42,6 +43,7 @@ export async function POST(req: NextRequest) {
     baseMultiplier?: string;
     focusAlbumMultiplier?: string;
     focusTrackMultiplier?: string;
+    prizePacks?: Array<{ packId: string; positionFrom: number; positionTo: number }>;
   };
 
   if (!body.name || !body.slug || !body.emoji || !body.startsAt || !body.endsAt)
@@ -64,6 +66,12 @@ export async function POST(req: NextRequest) {
       focusTrackMultiplier: body.focusTrackMultiplier ?? "3.00",
     })
     .returning();
+
+  if (body.prizePacks && body.prizePacks.length > 0) {
+    await db.insert(eraPrizePacks).values(
+      body.prizePacks.map((p) => ({ eraId: era.id, packId: p.packId, positionFrom: p.positionFrom, positionTo: p.positionTo }))
+    );
+  }
 
   return NextResponse.json(era, { status: 201 });
 }

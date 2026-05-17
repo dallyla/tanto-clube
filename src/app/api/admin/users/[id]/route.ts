@@ -23,9 +23,9 @@ export async function PATCH(
     return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
 
   const { id } = await params;
-  const body = await req.json() as { action: "ban" | "unban"; reason?: string };
+  const body = await req.json() as { action: "ban" | "unban" | "dismiss-suspicion"; reason?: string };
 
-  if (!body.action || !["ban", "unban"].includes(body.action))
+  if (!body.action || !["ban", "unban", "dismiss-suspicion"].includes(body.action))
     return NextResponse.json({ error: "Ação inválida" }, { status: 400 });
 
   // Fetch target user
@@ -42,21 +42,28 @@ export async function PATCH(
       .update(users)
       .set({ isBanned: true, banReason: body.reason ?? null, updatedAt: new Date() })
       .where(eq(users.id, id));
-  } else {
+  } else if (body.action === "unban") {
     await db
       .update(users)
       .set({ isBanned: false, banReason: null, updatedAt: new Date() })
+      .where(eq(users.id, id));
+  } else {
+    await db
+      .update(users)
+      .set({ suspicionDismissedAt: new Date(), updatedAt: new Date() })
       .where(eq(users.id, id));
   }
 
   await db.insert(auditLog).values({
     actorId: session.user.id,
     targetUserId: id,
-    action: body.action === "ban" ? "user_banned" : "user_unbanned",
+    action: body.action === "ban" ? "user_banned" : body.action === "unban" ? "user_unbanned" : "suspicion_dismissed",
     entityType: "user",
     entityId: id,
     beforeState: { isBanned: target.isBanned },
-    afterState: { isBanned: body.action === "ban", reason: body.reason ?? null },
+    afterState: body.action === "dismiss-suspicion"
+      ? { suspicionDismissedAt: new Date().toISOString() }
+      : { isBanned: body.action === "ban", reason: body.reason ?? null },
   });
 
   return NextResponse.json({ success: true });

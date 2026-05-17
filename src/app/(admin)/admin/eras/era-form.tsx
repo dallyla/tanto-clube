@@ -19,11 +19,16 @@ type EraFormData = {
   focusTrackMultiplier: string;
 };
 
+type PackOption = { id: string; name: string; emoji: string };
+type PackRow = { positionFrom: number; positionTo: number; packId: string };
+
 type Props = {
   mode: "new" | "edit";
   eraId?: string;
   currentStatus?: "draft" | "scheduled" | "active" | "ended";
   initial?: Partial<EraFormData>;
+  availablePacks?: PackOption[];
+  initialPrizePacks?: Array<{ positionFrom: number; positionTo: number; packId: string }>;
 };
 
 function slugify(s: string) {
@@ -76,11 +81,12 @@ type ModalState = {
 
 const CLOSED: ModalState = { open: false, title: "" };
 
-export function EraForm({ mode, eraId, currentStatus, initial }: Props) {
+export function EraForm({ mode, eraId, currentStatus, initial, availablePacks = [], initialPrizePacks = [] }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalState>(CLOSED);
+  const [packRows, setPackRows] = useState<PackRow[]>(initialPrizePacks);
 
   function ask(state: Omit<ModalState, "open">) {
     setModal({ ...state, open: true });
@@ -161,6 +167,19 @@ export function EraForm({ mode, eraId, currentStatus, initial }: Props) {
     });
   }
 
+  function addPackRow() {
+    const nextFrom = packRows.length > 0 ? Math.max(...packRows.map((r) => r.positionTo)) + 1 : 1;
+    setPackRows((prev) => [...prev, { positionFrom: nextFrom, positionTo: nextFrom, packId: "" }]);
+  }
+
+  function removePackRow(idx: number) {
+    setPackRows((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  function updatePackRow(idx: number, patch: Partial<PackRow>) {
+    setPackRows((prev) => prev.map((r, i) => (i === idx ? { ...r, ...patch } : r)));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -181,6 +200,7 @@ export function EraForm({ mode, eraId, currentStatus, initial }: Props) {
       baseMultiplier: form.baseMultiplier,
       focusAlbumMultiplier: form.focusAlbumMultiplier,
       focusTrackMultiplier: form.focusTrackMultiplier,
+      prizePacks: packRows.filter((r) => r.packId !== "" && r.positionFrom > 0 && r.positionTo >= r.positionFrom),
     };
 
     try {
@@ -397,6 +417,110 @@ export function EraForm({ mode, eraId, currentStatus, initial }: Props) {
             />
           </Field>
         </div>
+      </div>
+
+      {/* Prize packs */}
+      <div style={{ borderTop: "1px dashed var(--color-border)", paddingTop: "20px" }}>
+        <p
+          className="font-display"
+          style={{
+            color: "var(--color-gold)",
+            fontSize: "11px",
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            fontStyle: "italic",
+            marginBottom: "16px",
+          }}
+        >
+          Prêmios por posição
+        </p>
+
+        {availablePacks.length === 0 ? (
+          <p style={{ color: "var(--color-muted-foreground)", fontSize: "13px" }}>
+            Nenhum pack de prêmios cadastrado.{" "}
+            <a href="/admin/prizes" style={{ color: "var(--color-gold)", textDecoration: "underline" }}>
+              Criar packs
+            </a>
+          </p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            {packRows.map((row, idx) => (
+              <div key={idx} style={{ display: "grid", gridTemplateColumns: "auto 1fr auto", gap: "10px", alignItems: "center" }}>
+                {/* Range inputs */}
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
+                  <span style={{ color: "var(--color-muted-foreground)", fontSize: "12px", whiteSpace: "nowrap" }}>de</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={999}
+                    value={row.positionFrom}
+                    onChange={(e) => updatePackRow(idx, { positionFrom: Math.max(1, parseInt(e.target.value) || 1) })}
+                    style={{ ...FIELD_STYLE, width: "56px", textAlign: "center", padding: "10px 6px" }}
+                  />
+                  <span style={{ color: "var(--color-muted-foreground)", fontSize: "12px", whiteSpace: "nowrap" }}>ao</span>
+                  <input
+                    type="number"
+                    min={row.positionFrom}
+                    max={999}
+                    value={row.positionTo}
+                    onChange={(e) => updatePackRow(idx, { positionTo: Math.max(row.positionFrom, parseInt(e.target.value) || row.positionFrom) })}
+                    style={{ ...FIELD_STYLE, width: "56px", textAlign: "center", padding: "10px 6px" }}
+                  />
+                </div>
+
+                {/* Pack dropdown */}
+                <select
+                  value={row.packId}
+                  onChange={(e) => updatePackRow(idx, { packId: e.target.value })}
+                  style={{ ...FIELD_STYLE, cursor: "pointer" }}
+                >
+                  <option value="">— sem prêmio —</option>
+                  {availablePacks.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.emoji} {p.name}
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  type="button"
+                  onClick={() => removePackRow(idx)}
+                  style={{
+                    padding: "10px 14px",
+                    borderRadius: "8px",
+                    background: "transparent",
+                    border: "1px solid rgba(196,49,75,0.3)",
+                    color: "var(--color-cherry)",
+                    fontSize: "14px",
+                    cursor: "pointer",
+                    fontFamily: "inherit",
+                    flexShrink: 0,
+                  }}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={addPackRow}
+              style={{
+                padding: "9px 16px",
+                borderRadius: "8px",
+                background: "transparent",
+                border: "1px dashed var(--color-border)",
+                color: "var(--color-muted-foreground)",
+                fontSize: "13px",
+                cursor: "pointer",
+                fontFamily: "inherit",
+                textAlign: "left",
+              }}
+            >
+              + Adicionar posição
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Submit row */}

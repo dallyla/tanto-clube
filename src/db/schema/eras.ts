@@ -30,6 +30,8 @@ export const eras = pgTable("eras", {
   maxDailyTotalScrobbles: integer("max_daily_total_scrobbles").default(200).notNull(),
   maxHourlyScrobbles: integer("max_hourly_scrobbles").default(25).notNull(),
 
+  announcedAt: timestamp("announced_at", { withTimezone: true }),
+
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });

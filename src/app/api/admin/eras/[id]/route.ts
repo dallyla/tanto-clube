@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth/config";
 import { db } from "@/db";
 import { users } from "@/db/schema/users";
 import { eras, type NewEra } from "@/db/schema/eras";
+import { eraPrizePacks } from "@/db/schema/prizes";
 import { eq } from "drizzle-orm";
 
 async function getAdmin() {
@@ -27,7 +28,14 @@ export async function GET(
   const { id } = await params;
   const [era] = await db.select().from(eras).where(eq(eras.id, id)).limit(1);
   if (!era) return NextResponse.json({ error: "Era não encontrada" }, { status: 404 });
-  return NextResponse.json(era);
+
+  const packs = await db
+    .select({ packId: eraPrizePacks.packId, positionFrom: eraPrizePacks.positionFrom, positionTo: eraPrizePacks.positionTo })
+    .from(eraPrizePacks)
+    .where(eq(eraPrizePacks.eraId, id))
+    .orderBy(eraPrizePacks.positionFrom);
+
+  return NextResponse.json({ ...era, prizePacks: packs });
 }
 
 export async function PUT(
@@ -55,6 +63,7 @@ export async function PUT(
     baseMultiplier?: string;
     focusAlbumMultiplier?: string;
     focusTrackMultiplier?: string;
+    prizePacks?: Array<{ packId: string; positionFrom: number; positionTo: number }>;
   };
 
   const updates: Partial<NewEra> & { updatedAt: Date } = { updatedAt: new Date() };
@@ -71,11 +80,17 @@ export async function PUT(
   if (body.focusAlbumMultiplier !== undefined) updates.focusAlbumMultiplier = body.focusAlbumMultiplier;
   if (body.focusTrackMultiplier !== undefined) updates.focusTrackMultiplier = body.focusTrackMultiplier;
 
-  const [updated] = await db
-    .update(eras)
-    .set(updates)
-    .where(eq(eras.id, id))
-    .returning();
+  const [updated] = await db.update(eras).set(updates).where(eq(eras.id, id)).returning();
+
+  // Replace pack assignments if provided
+  if (body.prizePacks !== undefined) {
+    await db.delete(eraPrizePacks).where(eq(eraPrizePacks.eraId, id));
+    if (body.prizePacks.length > 0) {
+      await db.insert(eraPrizePacks).values(
+        body.prizePacks.map((p) => ({ eraId: id, packId: p.packId, positionFrom: p.positionFrom, positionTo: p.positionTo }))
+      );
+    }
+  }
 
   return NextResponse.json(updated);
 }

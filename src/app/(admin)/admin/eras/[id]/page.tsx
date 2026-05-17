@@ -4,14 +4,14 @@ import { notFound } from "next/navigation";
 import { requireAdmin } from "@/lib/auth/admin";
 import { db } from "@/db";
 import { eras } from "@/db/schema/eras";
-import { eq } from "drizzle-orm";
+import { prizePacks, eraPrizePacks } from "@/db/schema/prizes";
+import { eq, desc } from "drizzle-orm";
 import { EraForm } from "../era-form";
 
 export const metadata: Metadata = { title: "Editar Era" };
 export const revalidate = 0;
 
 function toLocalDatetimeValue(d: Date) {
-  // Returns YYYY-MM-DDTHH:mm for datetime-local input
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
@@ -32,6 +32,19 @@ export default async function EditEraPage({
     .limit(1);
 
   if (!era) notFound();
+
+  const [allPacks, currentPackAssignments] = await Promise.all([
+    db
+      .select({ id: prizePacks.id, name: prizePacks.name, emoji: prizePacks.emoji })
+      .from(prizePacks)
+      .where(eq(prizePacks.isActive, 1))
+      .orderBy(desc(prizePacks.createdAt)),
+    db
+      .select({ packId: eraPrizePacks.packId, positionFrom: eraPrizePacks.positionFrom, positionTo: eraPrizePacks.positionTo })
+      .from(eraPrizePacks)
+      .where(eq(eraPrizePacks.eraId, id))
+      .orderBy(eraPrizePacks.positionFrom),
+  ]);
 
   const initial = {
     name: era.name,
@@ -87,7 +100,14 @@ export default async function EditEraPage({
           padding: "28px",
         }}
       >
-        <EraForm mode="edit" eraId={id} currentStatus={era.status} initial={initial} />
+        <EraForm
+          mode="edit"
+          eraId={id}
+          currentStatus={era.status}
+          initial={initial}
+          availablePacks={allPacks}
+          initialPrizePacks={currentPackAssignments}
+        />
       </div>
     </div>
   );

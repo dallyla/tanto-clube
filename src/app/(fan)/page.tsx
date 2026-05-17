@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { auth } from "@/lib/auth/config";
 import { db } from "@/db";
 import { users } from "@/db/schema/users";
 import { eras } from "@/db/schema/eras";
 import { events } from "@/db/schema/events";
 import { pointsTransactions } from "@/db/schema/points";
-import { eq, desc, gte, asc, sum, and, or, isNull, lte, inArray } from "drizzle-orm";
+import { eq, desc, gte, asc, sum, and, or, isNull, lte, inArray, isNotNull } from "drizzle-orm";
 import { formatPoints } from "@/lib/utils";
 import { getFanLevel } from "@/lib/fan-level";
 import { missions, missionSubmissions } from "@/db/schema/missions";
@@ -60,6 +61,14 @@ export default async function HomePage() {
     .where(eq(eras.status, "active"))
     .limit(1);
 
+  // Last 2 announced eras — always shown so everyone sees results
+  const announcedEras = await db
+    .select({ id: eras.id, name: eras.name, emoji: eras.emoji, tagline: eras.tagline, announcedAt: eras.announcedAt })
+    .from(eras)
+    .where(and(eq(eras.status, "ended"), isNotNull(eras.announcedAt)))
+    .orderBy(desc(eras.announcedAt))
+    .limit(2);
+
   const upcomingEvents = await db
     .select({ id: events.id, title: events.title, emoji: events.emoji, scheduledAt: events.scheduledAt })
     .from(events)
@@ -68,6 +77,8 @@ export default async function HomePage() {
     .limit(3);
 
   const now = new Date();
+
+  const cutoff24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
   const activeMissions = await db
     .select({
@@ -85,7 +96,8 @@ export default async function HomePage() {
     .where(
       and(
         eq(missions.isActive, true),
-        or(isNull(missions.startsAt), lte(missions.startsAt, now))
+        or(isNull(missions.startsAt), lte(missions.startsAt, now)),
+        or(isNull(missions.endsAt), gte(missions.endsAt, cutoff24h))
       )
     )
     .orderBy(asc(missions.createdAt));
@@ -131,7 +143,17 @@ export default async function HomePage() {
     .orderBy(desc(users.totalPoints))
     .limit(50);
 
-  const top3 = topFans.slice(0, 3);
+  type Top3Entry = {
+    userId: string;
+    points: number;
+    displayName: string | null;
+    avatarEmoji: string | null;
+    avatarUrl: string | null;
+    anonymousMode: boolean;
+  };
+
+  let top3: Top3Entry[] = [];
+  let top3Label = "topo da era";
 
   // Posição e pontos: usa era ativa se disponível, senão ranking geral
   let userRank = 0;
@@ -157,8 +179,59 @@ export default async function HomePage() {
     rankPoints = myEntry?.eraPoints ?? 0;
     rankLabel = `ranking · ${era.name}`;
     top10MinPoints = eraBoard[9]?.eraPoints ?? 0;
+
+    const eraTop3Rows = await db
+      .select({
+        userId: pointsTransactions.userId,
+        points: sum(pointsTransactions.amount).mapWith(Number),
+        displayName: users.displayName,
+        avatarEmoji: users.avatarEmoji,
+        avatarUrl: users.avatarUrl,
+        anonymousMode: users.anonymousMode,
+      })
+      .from(pointsTransactions)
+      .innerJoin(users, eq(pointsTransactions.userId, users.id))
+      .where(and(eq(pointsTransactions.eraId, era.id), eq(users.isOnboarded, true)))
+      .groupBy(
+        pointsTransactions.userId,
+        users.displayName,
+        users.avatarEmoji,
+        users.avatarUrl,
+        users.anonymousMode,
+      )
+      .orderBy(desc(sum(pointsTransactions.amount)))
+      .limit(3);
+
+    top3 = eraTop3Rows;
+    top3Label = "topo da era";
   } else {
     userRank = topFans.findIndex((f) => f.id === session.user.id) + 1;
+
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthlyTop3Rows = await db
+      .select({
+        userId: pointsTransactions.userId,
+        points: sum(pointsTransactions.amount).mapWith(Number),
+        displayName: users.displayName,
+        avatarEmoji: users.avatarEmoji,
+        avatarUrl: users.avatarUrl,
+        anonymousMode: users.anonymousMode,
+      })
+      .from(pointsTransactions)
+      .innerJoin(users, eq(pointsTransactions.userId, users.id))
+      .where(and(gte(pointsTransactions.createdAt, monthStart), eq(users.isOnboarded, true)))
+      .groupBy(
+        pointsTransactions.userId,
+        users.displayName,
+        users.avatarEmoji,
+        users.avatarUrl,
+        users.anonymousMode,
+      )
+      .orderBy(desc(sum(pointsTransactions.amount)))
+      .limit(3);
+
+    top3 = monthlyTop3Rows;
+    top3Label = "topo do mês";
   }
 
   const gapToTop10 =
@@ -238,17 +311,82 @@ export default async function HomePage() {
               }}
             />
           </div>
+
+          <div className="mt-4 flex justify-end">
+            <Link
+              href="/era"
+              className="text-xs font-medium"
+              style={{ color: "var(--color-gold)", opacity: 0.8 }}
+            >
+              ver detalhes da era →
+            </Link>
+          </div>
         </div>
-      ) : (
+      ) : null}
+
+      {/* Announced results — always visible to everyone */}
+      {announcedEras.map((announcedEra, idx) => (
         <div
-          className="rounded-2xl p-5 text-center"
-          style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
+          key={announcedEra.id}
+          className="relative rounded-2xl p-5 overflow-hidden"
+          style={{
+            background: idx === 0
+              ? "linear-gradient(135deg, rgb(200 164 92 / 0.12), rgb(200 164 92 / 0.04)), var(--color-bg-card)"
+              : "var(--color-bg-card)",
+            border: idx === 0 ? "1px solid rgba(200,164,92,0.35)" : "1px solid var(--color-border)",
+          }}
         >
-          <p className="text-sm" style={{ color: "var(--color-muted-foreground)" }}>
-            Nenhuma era ativa no momento.
+          {idx === 0 && (
+            <div
+              className="absolute pointer-events-none"
+              style={{
+                top: "-20px", right: "-20px",
+                width: "120px", height: "120px",
+                background: "radial-gradient(circle, rgb(200 164 92 / 0.2), transparent 70%)",
+                borderRadius: "50%",
+              }}
+            />
+          )}
+          <p
+            className="font-display italic text-xs tracking-widest uppercase mb-2 flex items-center gap-2"
+            style={{ color: idx === 0 ? "var(--color-gold)" : "var(--color-muted-foreground)", letterSpacing: "0.15em" }}
+          >
+            <span>🏆</span>
+            {idx === 0 ? "Resultado anunciado" : "Resultado anterior"}
           </p>
+          <h2
+            className="font-display text-cream font-medium leading-none mb-1"
+            style={{ fontSize: idx === 0 ? "1.5rem" : "1.2rem" }}
+          >
+            {announcedEra.emoji} {announcedEra.name}
+          </h2>
+          {announcedEra.tagline && idx === 0 && (
+            <p className="font-script text-lg mb-3" style={{ color: "var(--color-gold)", opacity: 0.9 }}>
+              {announcedEra.tagline}
+            </p>
+          )}
+          <div className="flex items-center gap-3 mt-3">
+            <Link
+              href={`/resultado/${announcedEra.id}`}
+              className="inline-flex items-center gap-1 px-4 py-2 rounded-xl font-semibold text-sm"
+              style={idx === 0
+                ? { background: "var(--color-gold)", color: "var(--color-bg-primary)" }
+                : { background: "transparent", border: "1px solid var(--color-border)", color: "var(--color-muted-foreground)" }}
+            >
+              Ver resultado →
+            </Link>
+            {idx === announcedEras.length - 1 && (
+              <Link
+                href="/resultados"
+                className="text-xs"
+                style={{ color: "var(--color-muted-foreground)" }}
+              >
+                histórico completo
+              </Link>
+            )}
+          </div>
         </div>
-      )}
+      ))}
 
       {/* Posição */}
       {userRank > 0 && (
@@ -345,6 +483,13 @@ export default async function HomePage() {
               missões
             </span>
             <div className="flex-1" style={{ borderTop: "1px solid var(--color-border)" }} />
+            <Link
+              href="/missoes"
+              className="text-xs"
+              style={{ color: "var(--color-muted-foreground)" }}
+            >
+              ver histórico
+            </Link>
           </div>
 
           <div
@@ -463,7 +608,7 @@ export default async function HomePage() {
         </div>
       )}
 
-      {/* Topo da era */}
+      {/* Topo da era / topo do mês */}
       {top3.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-3">
@@ -471,7 +616,7 @@ export default async function HomePage() {
               className="font-display italic text-xs tracking-widest uppercase"
               style={{ color: "var(--color-gold)" }}
             >
-              topo da era
+              {top3Label}
             </span>
             <div className="flex-1" style={{ borderTop: "1px solid var(--color-border)" }} />
           </div>
@@ -481,7 +626,6 @@ export default async function HomePage() {
             style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
           >
             {top3.map((fan, idx) => {
-              const MEDALS = ["1", "2", "3"];
               const MEDAL_EMOJI = ["🥇", "🥈", "🥉"];
               const name = fan.anonymousMode ? "Anônimo" : fan.displayName;
               const emoji = fan.anonymousMode ? "🎭" : (fan.avatarEmoji ?? "🎵");
@@ -490,7 +634,7 @@ export default async function HomePage() {
 
               return (
                 <div
-                  key={fan.id}
+                  key={fan.userId}
                   className="flex items-center gap-3 px-4 py-3"
                   style={!isLast ? { borderBottom: "1px dashed var(--color-border)" } : undefined}
                 >
@@ -500,14 +644,14 @@ export default async function HomePage() {
                     style={{ background: "var(--color-bg-elevated)", border: "1px solid var(--color-border)" }}
                   >
                     {imgUrl ? (
-                      <img src={imgUrl} alt={name} className="w-full h-full object-cover" />
+                      <img src={imgUrl} alt={name ?? ""} className="w-full h-full object-cover" />
                     ) : (
                       emoji
                     )}
                   </div>
                   <span className="flex-1 text-cream text-sm font-medium truncate">{name}</span>
                   <span className="font-display italic text-gold text-sm">
-                    {formatPoints(fan.totalPoints)}
+                    {formatPoints(fan.points)}
                   </span>
                 </div>
               );

@@ -29,7 +29,7 @@ const NAV_SECTIONS = [
     label: "análise",
     items: [
       { href: "/admin/audit", label: "Relatórios", icon: "📈" },
-      { href: "/admin/prizes", label: "Configurações", icon: "⚙️" },
+      { href: "/admin/prizes", label: "Prêmios", icon: "🎁" },
     ],
   },
 ];
