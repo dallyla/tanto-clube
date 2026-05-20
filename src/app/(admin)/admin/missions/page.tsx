@@ -9,6 +9,7 @@ import { eq, desc, sql } from "drizzle-orm";
 import { MissionsReviewPanel } from "./missions-review";
 import { EncerrarButton } from "./encerrar-button";
 import { DeleteMissionButton } from "./delete-mission-button";
+import { CloneMissionButton } from "./clone-mission-button";
 
 export const metadata: Metadata = { title: "Missões" };
 export const revalidate = 0;
@@ -85,20 +86,21 @@ export default async function AdminMissionsPage() {
 
   const statsMap = new Map(stats.map((s) => [s.missionId, s]));
 
-  // Group missions
-  const ativas = allMissions.filter(
-    (m) => m.isActive && (!m.startsAt || new Date(m.startsAt) <= now)
-  );
-  const programadas = allMissions.filter(
-    (m) => m.startsAt && new Date(m.startsAt) > now
-  );
-  // Encerradas: were explicitly ended (endsAt set in the past and isActive = false)
+  // Group missions — priority: encerrada > programada > ativa > rascunho
   const encerradas = allMissions.filter(
-    (m) => !m.isActive && m.endsAt && new Date(m.endsAt) <= now
+    (m) => m.endsAt && new Date(m.endsAt) <= now
   );
-  // Rascunhos: inactive missions that were never ended (no past endsAt)
+  const encerradasIds = new Set(encerradas.map((m) => m.id));
+  const programadas = allMissions.filter(
+    (m) => !encerradasIds.has(m.id) && m.startsAt && new Date(m.startsAt) > now
+  );
+  const programadasIds = new Set(programadas.map((m) => m.id));
+  const ativas = allMissions.filter(
+    (m) => !encerradasIds.has(m.id) && !programadasIds.has(m.id) && m.isActive
+  );
+  // Rascunhos: inactive missions that have not ended and have not been scheduled
   const rascunhos = allMissions.filter(
-    (m) => !m.isActive && (!m.endsAt || new Date(m.endsAt) > now)
+    (m) => !encerradasIds.has(m.id) && !programadasIds.has(m.id) && !m.isActive
   );
 
   const pendingForClient = pending.map((s) => ({
@@ -309,6 +311,7 @@ export default async function AdminMissionsPage() {
                         >
                           Editar
                         </Link>
+                        <CloneMissionButton missionId={m.id} />
                         <EncerrarButton missionId={m.id} missionTitle={m.title} />
                         <DeleteMissionButton missionId={m.id} />
                       </div>
@@ -415,6 +418,7 @@ export default async function AdminMissionsPage() {
                       >
                         Editar
                       </Link>
+                      <CloneMissionButton missionId={m.id} />
                       <DeleteMissionButton missionId={m.id} />
                     </div>
                   </div>
@@ -480,6 +484,7 @@ export default async function AdminMissionsPage() {
                       >
                         Editar
                       </Link>
+                      <CloneMissionButton missionId={m.id} />
                       <DeleteMissionButton missionId={m.id} />
                     </div>
                   </div>
@@ -538,6 +543,7 @@ export default async function AdminMissionsPage() {
                       </div>
 
                       <div style={{ display: "flex", gap: "8px" }}>
+                        <CloneMissionButton missionId={m.id} />
                         <DeleteMissionButton missionId={m.id} />
                       </div>
                     </div>

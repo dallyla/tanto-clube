@@ -7,6 +7,7 @@ import { missions, missionSubmissions } from "@/db/schema/missions";
 import { pointsTransactions } from "@/db/schema/points";
 import { auditLog } from "@/db/schema/audit";
 import { eq, sql } from "drizzle-orm";
+import { notifications } from "@/db/schema/notifications";
 
 export async function POST(
   req: NextRequest,
@@ -93,6 +94,15 @@ export async function POST(
         pointsTransactionId: tx.id,
       })
       .where(eq(missionSubmissions.id, id));
+
+    // Notify user
+    await db.insert(notifications).values({
+      userId: submission.userId,
+      type: "mission_approved",
+      title: "✅ Missão aprovada!",
+      body: `Você ganhou ${mission.pointsReward} pts — ${mission.title}`,
+      link: "/missoes",
+    });
   } else {
     await db
       .update(missionSubmissions)

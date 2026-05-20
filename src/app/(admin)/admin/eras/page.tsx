@@ -201,7 +201,7 @@ export default async function AdminErasPage() {
                   </div>
 
                   {/* Actions */}
-                  <EraActions eraId={era.id} status={era.status} />
+                  <EraActions eraId={era.id} status={era.status} announcedAt={era.announcedAt} />
                 </div>
               ))}
             </div>

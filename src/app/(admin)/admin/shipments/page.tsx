@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import { requireAdmin } from "@/lib/auth/admin";
 import { db } from "@/db";
-import { prizeAwards } from "@/db/schema/prizes";
-import { prizes } from "@/db/schema/prizes";
+import { prizeAwards, prizes, prizeShipments } from "@/db/schema/prizes";
 import { users } from "@/db/schema/users";
 import { eras } from "@/db/schema/eras";
 import { eq, desc } from "drizzle-orm";
-import { ShipmentsTable } from "./shipments-table";
+import { ShipmentsTable, type ShippingAddress } from "./shipments-table";
 
 export const metadata: Metadata = { title: "Envio" };
 export const revalidate = 0;
@@ -35,14 +34,19 @@ export default async function AdminShipmentsPage() {
       fanName: users.displayName,
       fanEmail: users.email,
       avatarEmoji: users.avatarEmoji,
+      avatarUrl: users.avatarUrl,
       prizeName: prizes.name,
       prizeType: prizes.prizeType,
       eraName: eras.name,
+      recipientName: prizeShipments.recipientName,
+      shippingAddress: prizeShipments.shippingAddress,
+      trackingCode: prizeShipments.trackingCode,
     })
     .from(prizeAwards)
     .innerJoin(users, eq(prizeAwards.userId, users.id))
     .innerJoin(prizes, eq(prizeAwards.prizeId, prizes.id))
     .leftJoin(eras, eq(prizeAwards.eraId, eras.id))
+    .leftJoin(prizeShipments, eq(prizeShipments.prizeAwardId, prizeAwards.id))
     .orderBy(desc(prizeAwards.awardedAt));
 
   return (
@@ -89,7 +93,18 @@ export default async function AdminShipmentsPage() {
             padding: "20px",
           }}
         >
-          <ShipmentsTable awards={awards.map((a) => ({ ...a, eraName: a.eraName ?? null, avatarEmoji: a.avatarEmoji ?? null }))} statusLabels={STATUS_LABELS} />
+          <ShipmentsTable
+            awards={awards.map((a) => ({
+              ...a,
+              eraName: a.eraName ?? null,
+              avatarEmoji: a.avatarEmoji ?? null,
+              avatarUrl: a.avatarUrl ?? null,
+              recipientName: a.recipientName ?? null,
+              shippingAddress: (a.shippingAddress ?? null) as ShippingAddress | null,
+              trackingCode: a.trackingCode ?? null,
+            }))}
+            statusLabels={STATUS_LABELS}
+          />
         </div>
       )}
     </div>

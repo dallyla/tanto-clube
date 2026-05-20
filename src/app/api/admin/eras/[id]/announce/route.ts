@@ -7,7 +7,8 @@ import { eras } from "@/db/schema/eras";
 import { prizes, prizeAwards, prizePackItems, eraPrizePacks } from "@/db/schema/prizes";
 import { userBadges } from "@/db/schema/badges";
 import { pointsTransactions } from "@/db/schema/points";
-import { eq, desc, sum, inArray } from "drizzle-orm";
+import { eq, desc, sum, inArray, and } from "drizzle-orm";
+import { notifications } from "@/db/schema/notifications";
 
 async function getAdmin() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -40,8 +41,6 @@ export async function POST(
   if (!era) return NextResponse.json({ error: "Era não encontrada" }, { status: 404 });
   if (era.status !== "ended")
     return NextResponse.json({ error: "Apenas eras encerradas podem ser anunciadas" }, { status: 400 });
-  if (era.announcedAt)
-    return NextResponse.json({ error: "Esta era já foi anunciada" }, { status: 400 });
 
   // Compute final leaderboard (top 30)
   const leaderboard = await db
@@ -67,7 +66,11 @@ export async function POST(
     .orderBy(eraPrizePacks.positionFrom);
 
   const now = new Date();
-  await db.update(eras).set({ announcedAt: now, updatedAt: now }).where(eq(eras.id, id));
+
+  // Set announcedAt only if not already set
+  if (!era.announcedAt) {
+    await db.update(eras).set({ announcedAt: now, updatedAt: now }).where(eq(eras.id, id));
+  }
 
   if (packAssignments.length === 0) {
     return NextResponse.json({ success: true, winnersNotified: 0 });
@@ -116,12 +119,18 @@ export async function POST(
 
       for (const item of items) {
         const isBadge = item.prizeType === "badge" && item.badgeId;
+        const isDigital = item.prizeType === "digital";
+        const initialStatus = isBadge
+          ? ("delivered" as const)
+          : isDigital
+          ? ("pending_review" as const)
+          : ("address_pending" as const);
         awardsToCreate.push({
           userId: winner.userId,
           prizeId: item.prizeId,
           eraId: id,
           awardedReason: `Top ${rank} · ${era.name}`,
-          status: isBadge ? ("approved" as const) : ("address_pending" as const),
+          status: initialStatus,
           awardedAt: now,
         });
 
@@ -141,14 +150,52 @@ export async function POST(
     }
   }
 
-  if (awardsToCreate.length > 0) {
-    await db.insert(prizeAwards).values(awardsToCreate);
+  // Skip awards that already exist for this era to keep the operation idempotent
+  const existingAwards = awardsToCreate.length > 0
+    ? await db
+        .select({ userId: prizeAwards.userId, prizeId: prizeAwards.prizeId })
+        .from(prizeAwards)
+        .where(eq(prizeAwards.eraId, id))
+    : [];
+
+  const existingAwardSet = new Set(existingAwards.map((a) => `${a.userId}:${a.prizeId}`));
+  const newAwards = awardsToCreate.filter((a) => !existingAwardSet.has(`${a.userId}:${a.prizeId}`));
+
+  if (newAwards.length > 0) {
+    await db.insert(prizeAwards).values(newAwards);
   }
 
-  if (badgeGrantsToCreate.length > 0) {
-    await db.insert(userBadges).values(badgeGrantsToCreate);
+  // Skip badge grants that already exist
+  const badgeUserIds = badgeGrantsToCreate.map((b) => b.userId);
+  const existingBadgeGrants = badgeGrantsToCreate.length > 0 && badgeUserIds.length > 0
+    ? await db
+        .select({ userId: userBadges.userId, badgeId: userBadges.badgeId })
+        .from(userBadges)
+        .where(and(
+          inArray(userBadges.userId, badgeUserIds),
+          inArray(userBadges.badgeId, badgeGrantsToCreate.map((b) => b.badgeId as string)),
+        ))
+    : [];
+
+  const existingBadgeSet = new Set(existingBadgeGrants.map((b) => `${b.userId}:${b.badgeId}`));
+  const newBadgeGrants = badgeGrantsToCreate.filter((b) => !existingBadgeSet.has(`${b.userId}:${b.badgeId}`));
+
+  if (newBadgeGrants.length > 0) {
+    await db.insert(userBadges).values(newBadgeGrants);
   }
 
-  const uniqueWinners = new Set(awardsToCreate.map((a) => a.userId)).size;
-  return NextResponse.json({ success: true, winnersNotified: uniqueWinners });
+  const uniqueWinnerIds = [...new Set(newAwards.map((a) => a.userId))];
+  if (uniqueWinnerIds.length > 0) {
+    await db.insert(notifications).values(
+      uniqueWinnerIds.map((userId) => ({
+        userId,
+        type: "prize_awarded" as const,
+        title: "🎁 Você ganhou um prêmio!",
+        body: `Confira seus prêmios da era ${era.name}`,
+        link: `/resultado/${id}`,
+      }))
+    );
+  }
+
+  return NextResponse.json({ success: true, winnersNotified: uniqueWinnerIds.length, newAwards: newAwards.length });
 }

@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth/config";
 import { db } from "@/db";
 import { users } from "@/db/schema/users";
 import { missions } from "@/db/schema/missions";
+import { notifications } from "@/db/schema/notifications";
 import { eq } from "drizzle-orm";
 
 async function getAdmin() {
@@ -58,6 +59,21 @@ export async function POST(req: NextRequest) {
       maxTotalCompletions: body.maxTotalCompletions ?? null,
     })
     .returning();
+
+  if (mission.isActive) {
+    const allUsers = await db.select({ id: users.id }).from(users);
+    if (allUsers.length > 0) {
+      await db.insert(notifications).values(
+        allUsers.map((u) => ({
+          userId: u.id,
+          type: "mission_created" as const,
+          title: `${mission.emoji} Nova missão: ${mission.title}!`,
+          body: `Ganhe ${mission.pointsReward} pontos completando essa missão`,
+          link: "/missoes",
+        }))
+      );
+    }
+  }
 
   return NextResponse.json(mission, { status: 201 });
 }

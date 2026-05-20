@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth/config";
 import { db } from "@/db";
 import { eras } from "@/db/schema/eras";
 import { missions, missionSubmissions } from "@/db/schema/missions";
+import { eraPrizePacks, prizePacks, prizePackItems, prizes as prizesTable } from "@/db/schema/prizes";
 import { eq, and, or, isNull, lte, gte, inArray, desc } from "drizzle-orm";
 import MissionCard from "./mission-card";
 import type { MissionForCard, SubmissionForCard } from "./mission-card";
@@ -36,11 +37,17 @@ function formatMult(raw: string) {
   return Number.isInteger(n) ? `×${n}` : `×${n.toFixed(1)}`;
 }
 
-const ERA_PRIZES = [
-  { emoji: "🥇", title: "Top 1", desc: "Pack Premium + badge da Era" },
-  { emoji: "🥈", title: "Top 2 & 3", desc: "Pack Normal + badge da Era" },
-  { emoji: "🏅", title: "Top 4 a 30", desc: "Badges digitais exclusivas" },
-] as const;
+function positionMedal(from: number) {
+  if (from === 1) return "🥇";
+  if (from <= 3) return "🥈";
+  return "🏅";
+}
+
+function positionLabel(from: number, to: number) {
+  if (from === to) return `Top ${from}`;
+  if (from === 2 && to === 3) return "Top 2 & 3";
+  return `Top ${from} a ${to}`;
+}
 
 function SectionHeading({ children }: { children: React.ReactNode }) {
   return (
@@ -82,6 +89,42 @@ export default async function EraPage() {
   }
 
   const now = new Date();
+
+  // Fetch prize packs for this era
+  const packAssignments = await db
+    .select({
+      id: eraPrizePacks.id,
+      packId: eraPrizePacks.packId,
+      positionFrom: eraPrizePacks.positionFrom,
+      positionTo: eraPrizePacks.positionTo,
+      packName: prizePacks.name,
+      packEmoji: prizePacks.emoji,
+    })
+    .from(eraPrizePacks)
+    .innerJoin(prizePacks, eq(eraPrizePacks.packId, prizePacks.id))
+    .where(eq(eraPrizePacks.eraId, era.id))
+    .orderBy(eraPrizePacks.positionFrom);
+
+  const packItemsMap = new Map<string, string[]>();
+  if (packAssignments.length > 0) {
+    const packIds = packAssignments.map((p) => p.packId);
+    const items = await db
+      .select({
+        packId: prizePackItems.packId,
+        prizeName: prizesTable.name,
+        quantity: prizePackItems.quantity,
+      })
+      .from(prizePackItems)
+      .innerJoin(prizesTable, eq(prizePackItems.prizeId, prizesTable.id))
+      .where(inArray(prizePackItems.packId, packIds));
+
+    for (const item of items) {
+      if (!packItemsMap.has(item.packId)) packItemsMap.set(item.packId, []);
+      packItemsMap.get(item.packId)!.push(
+        item.quantity > 1 ? `${item.prizeName} ×${item.quantity}` : item.prizeName
+      );
+    }
+  }
 
   const activeMissions = await db
     .select({
@@ -408,26 +451,41 @@ export default async function EraPage() {
       </div>
 
       {/* Prêmios */}
-      <div>
-        <SectionHeading>prêmios da era</SectionHeading>
-        <div className="flex flex-col gap-2">
-          {ERA_PRIZES.map((p) => (
-            <div
-              key={p.title}
-              className="flex items-center gap-4 rounded-xl px-4 py-3"
-              style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
-            >
-              <span className="text-3xl flex-shrink-0">{p.emoji}</span>
-              <div className="flex-1 min-w-0">
-                <p className="font-display italic text-cream font-medium">{p.title}</p>
-                <p className="text-xs mt-0.5" style={{ color: "var(--color-muted-foreground)" }}>
-                  {p.desc}
-                </p>
-              </div>
-            </div>
-          ))}
+      {packAssignments.length > 0 && (
+        <div>
+          <SectionHeading>prêmios da era</SectionHeading>
+          <div className="flex flex-col gap-2">
+            {packAssignments.map((pack) => {
+              const items = packItemsMap.get(pack.packId) ?? [];
+              const desc = items.length > 0 ? items.join(" + ") : pack.packName;
+              return (
+                <div
+                  key={pack.id}
+                  className="flex items-center gap-4 rounded-xl px-4 py-3"
+                  style={{ background: "var(--color-bg-card)", border: "1px solid var(--color-border)" }}
+                >
+                  <span className="text-3xl flex-shrink-0">
+                    {positionMedal(pack.positionFrom)}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-display italic text-cream font-medium">
+                      {positionLabel(pack.positionFrom, pack.positionTo)}
+                    </p>
+                    <p className="text-xs mt-0.5" style={{ color: "var(--color-muted-foreground)" }}>
+                      {pack.packEmoji} {pack.packName}
+                      {items.length > 0 && (
+                        <span style={{ color: "var(--color-muted-foreground)", opacity: 0.7 }}>
+                          {" · "}{desc}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
     </div>
   );

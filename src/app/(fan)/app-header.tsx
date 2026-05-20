@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { NotificationBell } from "./notification-bell";
 
 const ROUTE_META: Record<string, { title: string; subtitle: string }> = {
   "/": { title: "TANTO", subtitle: "clube" },
@@ -39,21 +40,24 @@ export default function AppHeader({ avatarUrl, avatarEmoji }: AppHeaderProps) {
           </span>
         </div>
 
-        <Link href="/profile" aria-label="Perfil">
-          <div
-            className="w-9 h-9 rounded-full flex items-center justify-center text-lg leading-none select-none overflow-hidden"
-            style={{
-              background: "linear-gradient(135deg, var(--color-cherry-deep), var(--color-cherry))",
-              boxShadow: "0 2px 8px rgb(196 49 75 / 0.35)",
-            }}
-          >
-            {avatarUrl ? (
-              <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-            ) : (
-              avatarEmoji ?? "🎵"
-            )}
-          </div>
-        </Link>
+        <div className="flex items-center gap-2">
+          <NotificationBell />
+          <Link href="/profile" aria-label="Perfil">
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center text-lg leading-none select-none overflow-hidden"
+              style={{
+                background: "linear-gradient(135deg, var(--color-cherry-deep), var(--color-cherry))",
+                boxShadow: "0 2px 8px rgb(196 49 75 / 0.35)",
+              }}
+            >
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                avatarEmoji ?? "🎵"
+              )}
+            </div>
+          </Link>
+        </div>
       </div>
     </header>
   );

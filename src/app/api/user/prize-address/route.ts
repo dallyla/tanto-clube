@@ -9,6 +9,7 @@ import { z } from "zod";
 const addressSchema = z.object({
   prizeAwardId: z.string().uuid(),
   recipientName: z.string().min(2).max(120),
+  phone: z.string().min(10).max(20),
   address: z.object({
     street: z.string().min(4).max(200),
     number: z.string().min(1).max(20),
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success)
     return NextResponse.json({ error: "Dados inválidos", details: parsed.error.flatten() }, { status: 400 });
 
-  const { prizeAwardId, recipientName, address } = parsed.data;
+  const { prizeAwardId, recipientName, phone, address } = parsed.data;
 
   // Ensure this award belongs to this user and is in address_pending state
   const [award] = await db
@@ -51,18 +52,16 @@ export async function POST(req: NextRequest) {
 
   if (existing) return NextResponse.json({ error: "Endereço já cadastrado" }, { status: 400 });
 
-  await db.transaction(async (tx) => {
-    await tx.insert(prizeShipments).values({
-      prizeAwardId,
-      recipientName,
-      shippingAddress: address,
-    });
-
-    await tx
-      .update(prizeAwards)
-      .set({ status: "approved" })
-      .where(eq(prizeAwards.id, prizeAwardId));
+  await db.insert(prizeShipments).values({
+    prizeAwardId,
+    recipientName,
+    shippingAddress: { ...address, phone },
   });
+
+  await db
+    .update(prizeAwards)
+    .set({ status: "approved" })
+    .where(eq(prizeAwards.id, prizeAwardId));
 
   return NextResponse.json({ success: true });
 }

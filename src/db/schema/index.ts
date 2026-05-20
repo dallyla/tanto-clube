@@ -9,3 +9,4 @@ export * from "./rankings";
 export * from "./prizes";
 export * from "./audit";
 export * from "./events";
+export * from "./notifications";

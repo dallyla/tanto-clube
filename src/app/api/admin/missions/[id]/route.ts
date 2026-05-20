@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth/config";
 import { db } from "@/db";
 import { users } from "@/db/schema/users";
 import { missions, type Mission } from "@/db/schema/missions";
+import { notifications } from "@/db/schema/notifications";
 import { eras } from "@/db/schema/eras";
 import { eq } from "drizzle-orm";
 
@@ -61,7 +62,7 @@ export async function PUT(
   const { id } = await params;
 
   const [existing] = await db
-    .select({ id: missions.id })
+    .select({ id: missions.id, isActive: missions.isActive, title: missions.title, emoji: missions.emoji, pointsReward: missions.pointsReward })
     .from(missions)
     .where(eq(missions.id, id))
     .limit(1);
@@ -79,7 +80,7 @@ export async function PUT(
     isActive?: boolean;
     maxCompletionsPerUser?: number;
     maxTotalCompletions?: number | null;
-    action?: "close";
+    action?: "close" | "clone";
   };
 
   if (body.action === "close") {
@@ -88,7 +89,47 @@ export async function PUT(
       .set({ isActive: false, endsAt: new Date() })
       .where(eq(missions.id, id))
       .returning();
+
+    const allUsers = await db.select({ id: users.id }).from(users).where(eq(users.isOnboarded, true));
+    if (allUsers.length > 0) {
+      await db.insert(notifications).values(
+        allUsers.map((u) => ({
+          userId: u.id,
+          type: "mission_ended" as const,
+          title: `${existing.emoji} Missão encerrada: ${existing.title}`,
+          body: "Essa missão não aceita mais envios.",
+          link: "/missoes",
+        }))
+      );
+    }
+
     return NextResponse.json(updated);
+  }
+
+  if (body.action === "clone") {
+    const [source] = await db
+      .select()
+      .from(missions)
+      .where(eq(missions.id, id))
+      .limit(1);
+    if (!source) return NextResponse.json({ error: "Missão não encontrada" }, { status: 404 });
+    const [cloned] = await db
+      .insert(missions)
+      .values({
+        title: `Cópia de ${source.title}`,
+        description: source.description,
+        emoji: source.emoji,
+        pointsReward: source.pointsReward,
+        requiresScreenshot: source.requiresScreenshot,
+        eraId: source.eraId,
+        maxCompletionsPerUser: source.maxCompletionsPerUser,
+        maxTotalCompletions: source.maxTotalCompletions,
+        isActive: false,
+        startsAt: null,
+        endsAt: null,
+      })
+      .returning();
+    return NextResponse.json(cloned, { status: 201 });
   }
 
   const updates: Partial<Mission> = {};
@@ -109,6 +150,21 @@ export async function PUT(
     .set(updates)
     .where(eq(missions.id, id))
     .returning();
+
+  if (body.isActive === true && !existing.isActive) {
+    const allUsers = await db.select({ id: users.id }).from(users);
+    if (allUsers.length > 0) {
+      await db.insert(notifications).values(
+        allUsers.map((u) => ({
+          userId: u.id,
+          type: "mission_created" as const,
+          title: `${updated.emoji} Nova missão: ${updated.title}!`,
+          body: `Ganhe ${updated.pointsReward} pontos completando essa missão`,
+          link: "/missoes",
+        }))
+      );
+    }
+  }
 
   return NextResponse.json(updated);
 }

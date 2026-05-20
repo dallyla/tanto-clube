@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { eras } from "@/db/schema/eras";
 import { users } from "@/db/schema/users";
 import { pointsTransactions } from "@/db/schema/points";
-import { eq, desc, sum, or, isNull } from "drizzle-orm";
+import { eq, desc, sum, and, isNull } from "drizzle-orm";
 import { RankingsControls } from "./rankings-controls";
 
 export const metadata: Metadata = { title: "Apuração" };
@@ -55,14 +55,12 @@ export default async function AdminRankingsPage() {
     .limit(1);
 
   // Era encerrada ainda não anunciada
-  const [pendingEra] = await db
+  const [endedUnannounced] = await db
     .select()
     .from(eras)
-    .where(eq(eras.status, "ended"))
+    .where(and(eq(eras.status, "ended"), isNull(eras.announcedAt)))
     .orderBy(desc(eras.endsAt))
     .limit(1);
-
-  const endedUnannounced = pendingEra && !pendingEra.announcedAt ? pendingEra : null;
 
   const activeLeaderboard = activeEra ? await getLeaderboard(activeEra.id) : [];
   const endedLeaderboard = endedUnannounced ? await getLeaderboard(endedUnannounced.id) : [];

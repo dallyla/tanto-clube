@@ -28,10 +28,11 @@ const BTN: React.CSSProperties = {
   flexShrink: 0,
 };
 
-export function EraActions({ eraId, status }: { eraId: string; status: EraStatus }) {
+export function EraActions({ eraId, status, announcedAt }: { eraId: string; status: EraStatus; announcedAt?: Date | null }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [modal, setModal] = useState<ModalState>(CLOSED);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   function ask(state: Omit<ModalState, "open">) {
     setModal({ ...state, open: true });
@@ -72,8 +73,16 @@ export function EraActions({ eraId, status }: { eraId: string; status: EraStatus
     await fetch(`/api/admin/eras/${eraId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: "ended" }),
+      body: JSON.stringify({ status: "ended", endsAt: new Date().toISOString() }),
     });
+    router.refresh();
+  }
+
+  async function doAnnounce() {
+    const res = await fetch(`/api/admin/eras/${eraId}/announce`, { method: "POST" });
+    const data = await res.json() as { error?: string; winnersNotified?: number; newAwards?: number };
+    if (!res.ok) { alert(data.error ?? "Erro ao anunciar"); return; }
+    setSuccessMsg(`${data.newAwards ?? 0} novos prêmios criados para ${data.winnersNotified ?? 0} vencedor(es).`);
     router.refresh();
   }
 
@@ -108,6 +117,66 @@ export function EraActions({ eraId, status }: { eraId: string; status: EraStatus
         onConfirm={handleConfirm}
         onCancel={() => setModal(CLOSED)}
       />
+
+      {successMsg && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+            padding: "16px",
+          }}
+          onClick={() => setSuccessMsg(null)}
+        >
+          <div
+            style={{
+              background: "var(--color-bg-card)",
+              border: "1px solid rgba(126,184,136,0.4)",
+              borderRadius: "16px",
+              padding: "32px 28px",
+              maxWidth: "360px",
+              width: "100%",
+              textAlign: "center",
+              boxShadow: "0 0 40px rgba(126,184,136,0.15)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p style={{ fontSize: "2.5rem", marginBottom: "12px" }}>🎁</p>
+            <p
+              style={{
+                color: "var(--color-cream)",
+                fontWeight: 700,
+                fontSize: "16px",
+                marginBottom: "8px",
+              }}
+            >
+              Prêmios concedidos!
+            </p>
+            <p style={{ color: "var(--color-muted-foreground)", fontSize: "14px", marginBottom: "24px" }}>
+              {successMsg}
+            </p>
+            <button
+              onClick={() => setSuccessMsg(null)}
+              style={{
+                padding: "10px 28px",
+                borderRadius: "8px",
+                background: "#7eb888",
+                border: "none",
+                color: "#fff",
+                fontSize: "14px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
 
       <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
         <a
@@ -186,6 +255,32 @@ export function EraActions({ eraId, status }: { eraId: string; status: EraStatus
             }}
           >
             Encerrar
+          </button>
+        )}
+
+        {status === "ended" && (
+          <button
+            onClick={() =>
+              ask({
+                title: announcedAt ? "Recalcular prêmios?" : "Anunciar resultado?",
+                description: announcedAt
+                  ? "Novos prêmios serão criados para vencedores que ainda não os receberam, com base nos pacotes configurados."
+                  : "O resultado será publicado e os prêmios serão concedidos automaticamente com base nos pacotes configurados.",
+                confirmLabel: announcedAt ? "Recalcular Prêmios" : "Anunciar Resultado",
+                danger: false,
+                action: doAnnounce,
+              })
+            }
+            disabled={loading}
+            style={{
+              ...BTN,
+              background: "rgba(200,164,92,0.12)",
+              border: "1px solid rgba(200,164,92,0.3)",
+              color: "var(--color-gold)",
+              opacity: loading ? 0.5 : 1,
+            }}
+          >
+            {announcedAt ? "Recalcular Prêmios" : "Anunciar Resultado"}
           </button>
         )}
 

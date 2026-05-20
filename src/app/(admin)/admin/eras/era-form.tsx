@@ -103,8 +103,41 @@ export function EraForm({ mode, eraId, currentStatus, initial, availablePacks = 
     }
   }
 
+  async function saveForm(): Promise<boolean> {
+    const payload = {
+      name: form.name,
+      slug: form.slug,
+      emoji: form.emoji,
+      tagline: form.tagline || null,
+      startsAt: form.startsAt,
+      endsAt: form.endsAt,
+      status: form.status,
+      focusAlbum: form.focusAlbum || null,
+      focusTracks: form.focusTracks
+        ? form.focusTracks.split("\n").map((t) => t.trim()).filter(Boolean)
+        : [],
+      baseMultiplier: form.baseMultiplier,
+      focusAlbumMultiplier: form.focusAlbumMultiplier,
+      focusTrackMultiplier: form.focusTrackMultiplier,
+      prizePacks: packRows.filter((r) => r.packId !== "" && r.positionFrom > 0 && r.positionTo >= r.positionFrom),
+    };
+    const res = await fetch(`/api/admin/eras/${eraId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const data = await res.json() as { error?: string };
+      setError(data.error ?? "Erro ao salvar");
+      return false;
+    }
+    return true;
+  }
+
   async function doActivate() {
     setError(null);
+    const saved = await saveForm();
+    if (!saved) return;
     const listRes = await fetch("/api/admin/eras");
     const all = await listRes.json() as Array<{ id: string; status: string }>;
     for (const e of all) {

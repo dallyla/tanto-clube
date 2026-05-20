@@ -88,6 +88,18 @@ export function WinnerCelebration({ rank, eraName, eraEmoji, prizes }: Props) {
 
   return (
     <>
+      <style>{`
+        .modal-scroll::-webkit-scrollbar { width: 5px; }
+        .modal-scroll::-webkit-scrollbar-track { background: transparent; }
+        .modal-scroll::-webkit-scrollbar-thumb {
+          background: rgba(200,164,92,0.35);
+          border-radius: 99px;
+        }
+        .modal-scroll::-webkit-scrollbar-thumb:hover {
+          background: rgba(200,164,92,0.6);
+        }
+        .modal-scroll { scrollbar-width: thin; scrollbar-color: rgba(200,164,92,0.35) transparent; }
+      `}</style>
       <Confetti />
       <div
         style={{
@@ -106,12 +118,21 @@ export function WinnerCelebration({ rank, eraName, eraEmoji, prizes }: Props) {
             background: "var(--color-bg-card)",
             border: "1px solid rgba(200,164,92,0.5)",
             borderRadius: "20px",
-            padding: "36px 28px",
             maxWidth: "440px",
             width: "100%",
+            maxHeight: "calc(100dvh - 32px)",
+            overflow: "hidden",
             textAlign: "center",
             position: "relative",
             boxShadow: "0 0 60px rgba(200,164,92,0.15)",
+          }}
+        >
+        <div
+          className="modal-scroll"
+          style={{
+            padding: step === "address" ? "24px 20px" : "36px 28px",
+            maxHeight: "calc(100dvh - 32px)",
+            overflowY: "auto",
           }}
         >
           {step === "celebrate" ? (
@@ -238,6 +259,7 @@ export function WinnerCelebration({ rank, eraName, eraEmoji, prizes }: Props) {
               onBack={() => setStep("celebrate")}
             />
           ) : null}
+        </div>
         </div>
       </div>
     </>

@@ -6,6 +6,7 @@ import { users } from "@/db/schema/users";
 import { eras, type NewEra } from "@/db/schema/eras";
 import { eraPrizePacks } from "@/db/schema/prizes";
 import { eq } from "drizzle-orm";
+import { notifications } from "@/db/schema/notifications";
 
 async function getAdmin() {
   const session = await auth.api.getSession({ headers: await headers() });
@@ -47,7 +48,7 @@ export async function PUT(
 
   const { id } = await params;
 
-  const [existing] = await db.select({ id: eras.id }).from(eras).where(eq(eras.id, id)).limit(1);
+  const [existing] = await db.select({ id: eras.id, status: eras.status, name: eras.name }).from(eras).where(eq(eras.id, id)).limit(1);
   if (!existing) return NextResponse.json({ error: "Era não encontrada" }, { status: 404 });
 
   const body = await req.json() as {
@@ -81,6 +82,40 @@ export async function PUT(
   if (body.focusTrackMultiplier !== undefined) updates.focusTrackMultiplier = body.focusTrackMultiplier;
 
   const [updated] = await db.update(eras).set(updates).where(eq(eras.id, id)).returning();
+
+  // Notify all fans when era status actually changes to active or ended
+  const statusChanged =
+    body.status &&
+    body.status !== existing.status &&
+    (body.status === "active" || body.status === "ended");
+  console.log("[era notify] status check:", {
+    bodyStatus: body.status,
+    existingStatus: existing.status,
+    willNotify: Boolean(statusChanged),
+  });
+  if (statusChanged) {
+    try {
+      const allUsers = await db.select({ id: users.id }).from(users);
+      console.log("[era notify] fãs encontrados:", allUsers.length);
+      if (allUsers.length > 0) {
+        const isActive = body.status === "active";
+        await db.insert(notifications).values(
+          allUsers.map((u) => ({
+            userId: u.id,
+            type: isActive ? ("era_started" as const) : ("era_ended" as const),
+            title: isActive ? `🎯 ${updated.emoji} ${updated.name} começou!` : `⏳ ${updated.emoji} ${updated.name} foi encerrada`,
+            body: isActive
+              ? "Uma nova era está ativa. Comece a acumular pontos!"
+              : "Fique ligado — o resultado será anunciado em breve.",
+            link: isActive ? "/era" : "/ranking",
+          }))
+        );
+        console.log("[era notify] notificações inseridas:", allUsers.length);
+      }
+    } catch (err) {
+      console.error("[era notify] falha ao inserir notificações:", err);
+    }
+  }
 
   // Replace pack assignments if provided
   if (body.prizePacks !== undefined) {

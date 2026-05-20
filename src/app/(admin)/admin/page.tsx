@@ -5,8 +5,9 @@ import { db } from "@/db";
 import { eras } from "@/db/schema/eras";
 import { users } from "@/db/schema/users";
 import { missionSubmissions } from "@/db/schema/missions";
+import { prizeAwards, prizeShipments } from "@/db/schema/prizes";
 import { scrobbles } from "@/db/schema/scrobbles";
-import { eq, count, gte } from "drizzle-orm";
+import { eq, count, gte, and, isNull } from "drizzle-orm";
 
 export const metadata: Metadata = { title: "Dashboard" };
 export const revalidate = 0;
@@ -47,6 +48,12 @@ export default async function AdminDashboardPage() {
     .select({ total: count() })
     .from(missionSubmissions)
     .where(eq(missionSubmissions.status, "pending"));
+
+  const [{ total: pendingShipments }] = await db
+    .select({ total: count() })
+    .from(prizeAwards)
+    .innerJoin(prizeShipments, eq(prizeShipments.prizeAwardId, prizeAwards.id))
+    .where(and(eq(prizeAwards.status, "approved"), isNull(prizeShipments.shippedAt)));
 
   const monthStart = new Date();
   monthStart.setDate(1);
@@ -237,7 +244,7 @@ export default async function AdminDashboardPage() {
       </div>
 
       {/* Alerts */}
-      {(pendingMissions > 0 || bannedCount > 0) && (
+      {(pendingMissions > 0 || bannedCount > 0 || pendingShipments > 0) && (
         <div
           style={{
             background: "rgba(196,49,75,0.08)",
@@ -272,6 +279,27 @@ export default async function AdminDashboardPage() {
                   }}
                 >
                   Revisar
+                </Link>
+              </div>
+            )}
+            {pendingShipments > 0 && (
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <p style={{ color: "var(--color-cream)", fontSize: "14px" }}>
+                  {pendingShipments} {pendingShipments === 1 ? "endereço enviado aguarda" : "endereços enviados aguardam"} postagem
+                </p>
+                <Link
+                  href="/admin/shipments"
+                  style={{
+                    padding: "6px 14px",
+                    borderRadius: "6px",
+                    background: "var(--color-cherry)",
+                    color: "var(--color-cream)",
+                    textDecoration: "none",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                  }}
+                >
+                  Enviar
                 </Link>
               </div>
             )}
