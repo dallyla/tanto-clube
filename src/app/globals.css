@@ -16,6 +16,7 @@
   /* Cherry scale */
   --color-cherry: #c4314b;
   --color-cherry-deep: #8b1f33;
+  --color-cherry-fg: #fff9eb;
 
   /* Text */
   --color-cream: #f4ead5;
@@ -68,6 +69,7 @@
   /* Cherry scale */
   --color-cherry: #a02438;
   --color-cherry-deep: #6f1525;
+  --color-cherry-fg: #fff9eb;
 
   /* Text — cream becomes dark primary text on light bg */
   --color-cream: #2a1a10;

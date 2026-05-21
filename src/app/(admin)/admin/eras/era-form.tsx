@@ -566,7 +566,7 @@ export function EraForm({ mode, eraId, currentStatus, initial, availablePacks = 
             borderRadius: "8px",
             background: "var(--color-cherry)",
             border: "none",
-            color: "var(--color-cream)",
+            color: "var(--color-cherry-fg)",
             fontSize: "14px",
             fontWeight: 700,
             cursor: loading ? "not-allowed" : "pointer",

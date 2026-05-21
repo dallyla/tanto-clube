@@ -72,7 +72,7 @@ export default async function AdminErasPage() {
             padding: "10px 20px",
             borderRadius: "8px",
             background: "var(--color-cherry)",
-            color: "var(--color-cream)",
+            color: "var(--color-cherry-fg)",
             textDecoration: "none",
             fontSize: "14px",
             fontWeight: 600,

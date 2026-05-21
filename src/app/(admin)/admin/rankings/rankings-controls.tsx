@@ -118,7 +118,7 @@ export function RankingsControls({
                   borderRadius: "8px",
                   background: isAnnounce ? "var(--color-gold)" : "var(--color-cherry)",
                   border: "none",
-                  color: isAnnounce ? "var(--color-bg-primary)" : "var(--color-cream)",
+                  color: isAnnounce ? "var(--color-bg-primary)" : "var(--color-cherry-fg)",
                   fontSize: "14px",
                   fontWeight: 700,
                   cursor: loading ? "not-allowed" : "pointer",

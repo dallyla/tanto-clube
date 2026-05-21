@@ -26,7 +26,7 @@ export default function RankingTabs() {
           className="flex-1 text-center py-1.5 text-sm rounded-lg transition-colors"
           style={
             active === tab.key
-              ? { background: "var(--color-cherry)", color: "var(--color-cream)", fontWeight: 500 }
+              ? { background: "var(--color-cherry)", color: "var(--color-cherry-fg)", fontWeight: 500 }
               : { color: "var(--color-muted-foreground)" }
           }
         >

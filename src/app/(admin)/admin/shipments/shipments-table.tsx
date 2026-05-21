@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useState, useCallback } from "react";
 
 export type ShippingAddress = {
   street: string;
@@ -87,6 +87,14 @@ export function ShipmentsTable({ awards: initial, statusLabels }: Props) {
   const [awards, setAwards] = useState(initial);
   const [updating, setUpdating] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const copyAddress = useCallback((id: string, text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    });
+  }, []);
 
   async function advanceStatus(id: string, prizeType: string, currentStatus: string) {
     const nextStatus = getNextStatus(prizeType, currentStatus);
@@ -164,7 +172,7 @@ export function ShipmentsTable({ awards: initial, statusLabels }: Props) {
                           alt={a.fanName}
                           width={28}
                           height={28}
-                          style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
+                          style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0, width: "28px", height: "28px", display: "block" }}
                         />
                       ) : (
                         <span style={{ fontSize: "18px" }}>{a.avatarEmoji ?? "🎵"}</span>
@@ -266,11 +274,39 @@ export function ShipmentsTable({ awards: initial, statusLabels }: Props) {
                           borderRadius: "8px",
                           padding: "12px 16px",
                           display: "inline-block",
+                          position: "relative",
                         }}
                       >
-                        <p style={{ color: "#60a5fa", fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: "6px" }}>
-                          Endereço de entrega
-                        </p>
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "24px", marginBottom: "6px" }}>
+                          <p style={{ color: "#60a5fa", fontSize: "10px", fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", margin: 0 }}>
+                            Endereço de entrega
+                          </p>
+                          <button
+                            onClick={() => copyAddress(a.id, formatAddress(a.shippingAddress!, a.recipientName!))}
+                            title={copiedId === a.id ? "Copiado!" : "Copiar endereço"}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              padding: "2px",
+                              color: copiedId === a.id ? "#4ade80" : "var(--color-muted-foreground)",
+                              lineHeight: 1,
+                              flexShrink: 0,
+                              transition: "color 0.15s",
+                            }}
+                          >
+                            {copiedId === a.id ? (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            ) : (
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                              </svg>
+                            )}
+                          </button>
+                        </div>
                         <pre
                           style={{
                             color: "var(--color-cream)",

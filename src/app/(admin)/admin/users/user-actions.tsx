@@ -152,7 +152,7 @@ export function UserActions({ user, onUpdate }: { user: User; onUpdate?: (id: st
                   borderRadius: "8px",
                   background: "var(--color-cherry)",
                   border: "none",
-                  color: "var(--color-cream)",
+                  color: "var(--color-cherry-fg)",
                   fontSize: "14px",
                   fontWeight: 600,
                   cursor: loading ? "not-allowed" : "pointer",
