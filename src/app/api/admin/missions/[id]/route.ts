@@ -121,7 +121,7 @@ export async function PUT(
         emoji: source.emoji,
         pointsReward: source.pointsReward,
         requiresScreenshot: source.requiresScreenshot,
-        eraId: source.eraId,
+        eraId: null,
         maxCompletionsPerUser: source.maxCompletionsPerUser,
         maxTotalCompletions: source.maxTotalCompletions,
         isActive: false,

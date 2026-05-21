@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export type ReviewSubmission = {
   id: string;
@@ -37,6 +38,7 @@ const BTN_BASE: React.CSSProperties = {
 };
 
 export function MissionsReviewPanel({ submissions }: { submissions: ReviewSubmission[] }) {
+  const router = useRouter();
   const [items, setItems] = useState(submissions);
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -71,6 +73,7 @@ export function MissionsReviewPanel({ submissions }: { submissions: ReviewSubmis
       setIndex((prev) => Math.min(prev, next.length - 1));
       setShowReject(false);
       setReason("");
+      router.refresh();
     } catch {
       alert("Erro de conexão");
     } finally {

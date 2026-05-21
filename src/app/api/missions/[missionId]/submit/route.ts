@@ -4,7 +4,6 @@ import { auth } from "@/lib/auth/config";
 import { put } from "@vercel/blob";
 import { db } from "@/db";
 import { missions, missionSubmissions } from "@/db/schema/missions";
-import { eras } from "@/db/schema/eras";
 import { eq, and } from "drizzle-orm";
 
 const MAX_SIZE = 5 * 1024 * 1024;
@@ -33,16 +32,6 @@ export async function POST(
     return NextResponse.json({ error: "Missão ainda não começou" }, { status: 400 });
   if (mission.endsAt && mission.endsAt < now)
     return NextResponse.json({ error: "Missão encerrada" }, { status: 400 });
-
-  if (mission.eraId) {
-    const [era] = await db
-      .select({ status: eras.status })
-      .from(eras)
-      .where(eq(eras.id, mission.eraId))
-      .limit(1);
-    if (!era || era.status !== "active")
-      return NextResponse.json({ error: "Era encerrada" }, { status: 400 });
-  }
 
   const [existing] = await db
     .select({ id: missionSubmissions.id, status: missionSubmissions.status })
